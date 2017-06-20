@@ -1,0 +1,9 @@
+<launch>
+  <node
+    pkg="rsi_lauv_ntnu"
+    type="zeroNode"
+    name="zeroNode_0"
+    output="screen">
+  </node>
+</launch>
+<!-- launch-prefix="xterm -e" -->

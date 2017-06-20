@@ -1,0 +1,38 @@
+<launch>
+  <node
+    pkg="rsi_lauv_ntnu"
+    type="zeroLauvNode"
+    name="zeroLauvNode_0"
+    output="screen">
+  </node>
+  <node
+    pkg="rsi_lauv_ntnu"
+    type="bridgeLauvNode"
+    name="bridgeLauvNode_0"
+    output="screen"
+  >
+    <param
+      name="server_addr"
+      type="str"
+      value="127.0.0.1"
+    />
+    <param
+      name="server_port"
+      type="str"
+      value="32603"
+    />
+    <param
+      name="vehicle_name"
+      type="str"
+      value="lauv-simulator-ntnu-1"
+    />
+  </node>
+  <node
+    pkg="rsi_lauv_ntnu"
+    type="verboseLauvNode"
+    name="verboseLauvNode_0"
+    launch-prefix="xterm -e"
+    output="screen">
+  </node>
+</launch>
+<!-- launch-prefix="xterm -e" -->

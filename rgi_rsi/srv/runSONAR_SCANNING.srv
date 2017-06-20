@@ -1,0 +1,4 @@
+int32 eqptId
+int32 modeId
+---
+int32 actionId

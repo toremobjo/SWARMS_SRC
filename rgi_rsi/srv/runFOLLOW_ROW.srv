@@ -1,0 +1,5 @@
+int32 modeId
+float32[] origin
+float32[] dest
+---
+int32 actionId

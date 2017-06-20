@@ -1,0 +1,4 @@
+int32 modeId
+float32 depth
+---
+int64 actionId
