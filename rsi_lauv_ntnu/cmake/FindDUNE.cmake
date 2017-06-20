@@ -27,7 +27,7 @@ if(DUNE_ROOT)
   set(_DUNE_SEARCH_ROOT PATHS ${DUNE_ROOT} NO_DEFAULT_PATH)
   list(APPEND _DUNE_SEARCH_PATHS _DUNE_SEARCH_ROOT)
 endif()
-list(APPEND _DUNE_SEARCH_PATHS "/home/uvlab/swarms/Dune/install" "/usr" "/usr/local")
+list(APPEND _DUNE_SEARCH_PATHS "/home/uvlab/swarms/Dune/install" "/home/nicolas/LSTS/dune-2017.01.0/install" "/usr" "/usr/local")
 
 foreach(path ${_DUNE_SEARCH_PATHS})
   find_path(DUNE_INCLUDE_DIR DUNE/DUNE.hpp HINTS ${path}/include)
