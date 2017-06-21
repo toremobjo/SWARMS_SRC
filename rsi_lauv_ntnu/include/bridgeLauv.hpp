@@ -147,7 +147,7 @@ namespace rsilauv
 
       if (true)
       {
-        cpt_ = cpt_+1;
+        cpt_ ++;
         rsi_lauv_ntnu::testMsgRsiLauv msg_n;
         msg_n.txt1 = "test1";
         msg_n.txt2 = "test2";
@@ -308,7 +308,7 @@ namespace rsilauv
       pc.arg.set(ps);
       sendToTcpServer(pc);
 
-      nbActions_ = nbActions_+1;
+      nbActions_ ++;
       res.actionId = 12345;
 
       return true;
@@ -318,18 +318,19 @@ namespace rsilauv
       rsi_lauv_ntnu::testSrvRsiLauv::Response &res)
     {
       if (!isConnectedDetermined())
+      {
         return false;
-
-        if (req.ind1==40)
-        {
-          DUNE::IMC::EntityParameter p;
-          p.name = "Active";
-          p.value = "false";
-          DUNE::IMC::SetEntityParameters msg;
-          msg.name = "Camera";
-          msg.params.push_back(p);
-          sendToTcpServer(msg);
-        }
+      }
+      if (req.ind1==40)
+      {
+        DUNE::IMC::EntityParameter p;
+        p.name = "Active";
+        p.value = "false";
+        DUNE::IMC::SetEntityParameters msg;
+        msg.name = "Camera";
+        msg.params.push_back(p);
+        sendToTcpServer(msg);
+      }
       // Message ID: 804 (?)
       if (req.ind1==30)
       {
@@ -543,145 +544,130 @@ namespace rsilauv
       }
       if (isFromVehicle(msg->getSource()))
       {
-        if (msg->getId()==IMC_ID_ESTIMATEDSTATE)
-        {
-          const DUNE::IMC::EstimatedState* ppp = static_cast<const DUNE::IMC::EstimatedState*>(msg);
-          /*
-          ROS_INFO("MSG_ID: %d --> EstimatedState",int(msg->getId()));
-          float lat;
-          float lon;
-          lat = ppp->lat-1.107256;
-          lon = ppp->lon-0.180620;
-          ROS_INFO("\t - (lat,lon,height): (%e,%e,%f)",lat,lon,float(ppp->height));
-          ROS_INFO("\t - (x,y,z): (%f,%f,%f)",float(ppp->x),float(ppp->y),float(ppp->z));
-          ROS_INFO("\t - (phi,theta,psi): (%f,%f,%f)",float(ppp->phi),float(ppp->theta),float(ppp->psi));
-          ROS_INFO("\t - (u,v,w): (%f,%f,%f)",float(ppp->u),float(ppp->v),float(ppp->w));
-          ROS_INFO("\t - (vx,vy,vz): (%f,%f,%f)",float(ppp->vx),float(ppp->vy),float(ppp->vz));
-          ROS_INFO("\t - (p,q,r): (%f,%f,%f)",float(ppp->p),float(ppp->q),float(ppp->r));
-          ROS_INFO("\t - (depth,alt): (%f,%f)",float(ppp->depth),float(ppp->alt));
-          */
-          mySitu_.x = ppp->x;
-          mySitu_.y = ppp->y;
-          mySitu_.z = ppp->z;
-        }
-        else if (msg->getId()==IMC_ID_ANNOUNCE)
-        {
-          // chrono1_.stop();
-          // ROS_INFO_STREAM("MSG_ID:" << IMC_ID_ANNOUNCE << " [" << chrono1_.getDtSec() << " Sec. " << (1/chrono1_.getDtSec()) << " Hz]");
-          // chrono1_.start();
-        }
-        else if (msg->getId()==IMC_ID_VEHICLESTATE)
-        {
-          const DUNE::IMC::VehicleState* ppp = static_cast<const DUNE::IMC::VehicleState*>(msg);
-          vehicleService_ = ppp->op_mode==DUNE::IMC::VehicleState::VS_SERVICE;
-        }
-        else if (msg->getId()==IMC_ID_HEARTBEAT)
-        {
-          // TBD ???
-        }
-        else if (msg->getId()==IMC_ID_FUELLEVEL)
-        {
-          const DUNE::IMC::FuelLevel* ppp = static_cast<const DUNE::IMC::FuelLevel*>(msg);
-          // trace("Operation modes are: %s\nPercentage is %.2f\nConfidence level is %.2f\n",
-          //      m_fuel.opmodes.c_str(), m_fuel.value, m_fuel.confidence);
-          ROS_INFO_THROTTLE(60,"MSG_ID: %d --> FuelLevel=%.2f (CI=%.2f) [%s]", int(msg->getId()),ppp->value,ppp->confidence,ppp->opmodes.c_str());
-        }
-        else if (msg->getId()==IMC_ID_ENTITYACTIVATIONSTATE)
-        {
-          const DUNE::IMC::EntityActivationState* ppp = static_cast<const DUNE::IMC::EntityActivationState*>(msg);
-          ROS_INFO("MSG_ID: %d, MSG_SOURCE: %d --> state: %d",int(msg->getId()),msg->getSourceEntity(),int(ppp->state));
-        }
-        else if (msg->getId()==IMC_ID_QUERYENTITYACTIVATIONSTATE)
-        {
-          ROS_INFO("PROUT");
-        }
-        else if (msg->getId()==IMC_ID_ENTITYLIST)
-        {
-          if (!flagEntity_)
-          {
-            ROS_INFO("MSG_ID: %d --> EntityList",int(msg->getId()));
-            const DUNE::IMC::EntityList* ppp = static_cast<const DUNE::IMC::EntityList*>(msg);
-            ROS_INFO("MSG_ID: %d --> EntityList: %s",int(msg->getId()),ppp->list.c_str());
-            //TODO: Parse EntityList
-            flagEntity_ = true;
-            idEntityCTD1_ = 39;
-            idEntityCTD2_ = 47;
+        switch(msg->getId()){
+
+          case IMC_ID_ESTIMATEDSTATE : 
+          { 
+            const DUNE::IMC::EstimatedState* ppp = static_cast<const DUNE::IMC::EstimatedState*>(msg);
+            mySitu_.x = ppp->x;
+            mySitu_.y = ppp->y;
+            mySitu_.z = ppp->z;
+
+              /*
+            ROS_INFO("MSG_ID: %d --> EstimatedState",int(msg->getId()));
+            float lat;
+            float lon;
+            lat = ppp->lat-1.107256;
+            lon = ppp->lon-0.180620;
+            ROS_INFO("\t - (lat,lon,height): (%e,%e,%f)",lat,lon,float(ppp->height));
+            ROS_INFO("\t - (x,y,z): (%f,%f,%f)",float(ppp->x),float(ppp->y),float(ppp->z));
+            ROS_INFO("\t - (phi,theta,psi): (%f,%f,%f)",float(ppp->phi),float(ppp->theta),float(ppp->psi));
+            ROS_INFO("\t - (u,v,w): (%f,%f,%f)",float(ppp->u),float(ppp->v),float(ppp->w));
+            ROS_INFO("\t - (vx,vy,vz): (%f,%f,%f)",float(ppp->vx),float(ppp->vy),float(ppp->vz));
+            ROS_INFO("\t - (p,q,r): (%f,%f,%f)",float(ppp->p),float(ppp->q),float(ppp->r));
+            ROS_INFO("\t - (depth,alt): (%f,%f)",float(ppp->depth),float(ppp->alt));
+            */
+            //ROS_INFO("mysitu");
+            break;
           }
-        }
-        else if (msg->getId()==IMC_ID_ENTITYPARAMETERS)
-        {
-          ROS_INFO("MSG_ID: %d --> EntityParameters",int(msg->getId()));
-          const DUNE::IMC::EntityParameters* ppp = static_cast<const DUNE::IMC::EntityParameters*>(msg);
-          ROS_INFO("MSG_ID: %d --> Entity: %s",int(msg->getId()),ppp->name.c_str());
-          DUNE::IMC::MessageList<DUNE::IMC::EntityParameter>::const_iterator itr = ppp->params.begin();
-          for (; itr != ppp->params.end(); ++itr)
+
+          case IMC_ID_ANNOUNCE : 
           {
-            try
-            {
-              ROS_INFO("%s: %s",(*itr)->name.c_str(),(*itr)->value.c_str());
-            }
-            catch (std::runtime_error& e)
-            {
-              ROS_WARN("Error (%s)",e.what());
-            }
+            //TBD
+            //ROS_INFO("Announce");
+            break;
           }
-        }
-        else if (msg->getId()==IMC_ID_PLANCONTROLSTATE)
-        {
-          const DUNE::IMC::PlanControlState* ppp = static_cast<const DUNE::IMC::PlanControlState*>(msg);
-          //ROS_INFO("MSG_ID: %d --> PlanControlState",int(msg->getId()));
-          //ROS_INFO("  - state: %d",int(ppp->state));
-          //ROS_INFO("  - plan_id: %s",ppp->plan_id.c_str());
-          //ROS_INFO("  - plan_eta: %d (s)",int(ppp->plan_eta));
-          //ROS_INFO("  - plan_progress: %f (%%)",float(ppp->plan_progress));
-          //ROS_INFO("  - last_outcome: %d",int(ppp->last_outcome));
+
+          case IMC_ID_VEHICLESTATE : 
+          {
+            const DUNE::IMC::VehicleState* ppp = static_cast<const DUNE::IMC::VehicleState*>(msg);
+            vehicleService_ = ppp->op_mode==DUNE::IMC::VehicleState::VS_SERVICE;
+            //ROS_INFO("VehicleState");
+            break;
+          }
+
+          case IMC_ID_HEARTBEAT : 
+          {
+            //TBD
+            //ROS_INFO("heartbeat");
+            break;
+          }
           
-          if (int(ppp->state)!=lastState_)
+          case IMC_ID_FUELLEVEL : 
           {
-            lastState_ = int(ppp->state);
-            if (1==1) //(nbActions_!=0)
-            {
-              g2s_interface::endOfAction msg_eoa;
-              msg_eoa.actionId = 777;
-              msg_eoa.endCode = int(ppp->last_outcome); // 1: Success, 2: Failure, 0:None
-              pub3_.publish(msg_eoa);
-              ROS_INFO("[%s] endOfAction notified (actionId:%d, endCode:%d)",
-                 nodeName_.c_str(),msg_eoa.actionId,msg_eoa.endCode);
-            }
+            const DUNE::IMC::FuelLevel* ppp = static_cast<const DUNE::IMC::FuelLevel*>(msg);
+            // trace("Operation modes are: %s\nPercentage is %.2f\nConfidence level is %.2f\n",
+            //      m_fuel.opmodes.c_str(), m_fuel.value, m_fuel.confidence);
+            ROS_INFO_THROTTLE(60,"MSG_ID: %d --> FuelLevel=%.2f (CI=%.2f) [%s]", int(msg->getId()),ppp->value,ppp->confidence,ppp->opmodes.c_str());
+            break;
           }
-                  
-        }
-        else if (msg->getId()==IMC_ID_CONDUCTIVITY)
-        {
-          const DUNE::IMC::Conductivity* ppp = static_cast<const DUNE::IMC::Conductivity*>(msg);
-          myWater_.conductivity = ppp->value;
-          // ROS_INFO("MSG_ID: %d --> Conductivity=%f", int(msg->getId()),double(ppp->value));
-        }
-        else if (msg->getId()==IMC_ID_SALINITY)
-        {
-          const DUNE::IMC::Salinity* ppp = static_cast<const DUNE::IMC::Salinity*>(msg);
-          myWater_.salinity = ppp->value;
-           // ROS_INFO("MSG_ID: %d --> Salinity=%f", int(msg->getId()),double(ppp->value));
-        }
-        else if (msg->getId()==IMC_ID_TEMPERATURE)
-        {
-          const DUNE::IMC::Temperature* ppp = static_cast<const DUNE::IMC::Temperature*>(msg);
-          myWater_.temperature = ppp->value;
-          // ROS_INFO("MSG_ID: %d --> Temperature=%f", int(msg->getId()),double(ppp->value));
-        }
-        else if (msg->getId()==IMC_ID_SOUNDSPEED)
-        {
+
+          case IMC_ID_ENTITYACTIVATIONSTATE : 
+          {
+            //TBD
+            //ROS_INFO("EntityActivationState");
+            break;
+          }
+
+          case IMC_ID_ENTITYLIST : 
+          {
+            if (!flagEntity_)
+            {
+              ROS_INFO("MSG_ID: %d --> EntityList",int(msg->getId()));
+              const DUNE::IMC::EntityList* ppp = static_cast<const DUNE::IMC::EntityList*>(msg);
+              ROS_INFO("MSG_ID: %d --> EntityList: %s",int(msg->getId()),ppp->list.c_str());
+              //TODO: Parse EntityList
+              flagEntity_ = true;
+              idEntityCTD1_ = 39;
+              idEntityCTD2_ = 47;
+            }
+            break;
+          }
+
+          case IMC_ID_CONDUCTIVITY : 
+          {
+           const DUNE::IMC::Conductivity* ppp = static_cast<const DUNE::IMC::Conductivity*>(msg);
+           myWater_.conductivity = ppp->value;
+           break;
+          }
+
+          case IMC_ID_SALINITY :
+          {
+            const DUNE::IMC::Salinity* ppp = static_cast<const DUNE::IMC::Salinity*>(msg);
+            myWater_.salinity = ppp->value;
+            break;
+          }
+
+          case IMC_ID_TEMPERATURE :
+          {
+            const DUNE::IMC::Temperature* ppp = static_cast<const DUNE::IMC::Temperature*>(msg);
+            myWater_.temperature = ppp->value;
+            break;
+          }
+
+          case IMC_ID_SOUNDSPEED : 
+          {
           const DUNE::IMC::SoundSpeed* ppp = static_cast<const DUNE::IMC::SoundSpeed*>(msg);
           myWater_.soundSpeed = ppp->value;
-          // ROS_INFO("MSG_ID: %d --> SoundSSpeed=%f", int(msg->getId()),double(ppp->value));
+          break;
+          }
+
+          case IMC_ID_DEPTH:
+          {
+            const DUNE::IMC::Depth* ppp = static_cast<const DUNE::IMC::Depth*>(msg);
+            break;
+          }
+
+          case IMC_ID_PLANCONTROLSTATE : 
+          {
+            //TBD
+            break;
+          }
+
+          default : 
+            ROS_INFO("Unknown message type, please identfy message.");
+            ROS_INFO("MSG_ID: %d (?)", int(msg->getId()));
         }
-        else if (msg->getId()==IMC_ID_DEPTH)
-        {
-          const DUNE::IMC::Depth* ppp = static_cast<const DUNE::IMC::Depth*>(msg);
-          // ROS_INFO("MSG_ID: %d --> Depth=%f", int(msg->getId()),double(ppp->value));
-        }
-        else
-          ROS_INFO("MSG_ID: %d (?)", int(msg->getId()));
       }
     }
 
