@@ -7,6 +7,8 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Header.h>
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Point.h>
+
 
 #include "rsi_lauv_ntnu/testMsgRsiLauv.h"
 #include "rsi_lauv_ntnu/testSrvRsiLauv.h"
@@ -26,6 +28,7 @@
 #include "g2s_interface/powerStatus.h"
 #include "g2s_interface/runGOTO_WAYPOINT.h"
 #include "g2s_interface/abort_Action.h"
+#include "g2s_interface/actionStatus.h"
 
 // Boost headers.
 #include <boost/thread/thread.hpp>
@@ -65,6 +68,13 @@ namespace rsilauv
     float level;
     float confInter;
   };
+  struct Action
+  {
+    ros::Time requestTime; 
+    int actionNumber;
+    DUNE::IMC::PlanControl actionPlan;
+    bool success;
+  };
   class Bridge
   {
   public:
@@ -81,6 +91,7 @@ namespace rsilauv
     tcp_client_thread_(NULL),
     vehicleName_(vehicleName),
     vehicleId_(-1),
+    action_id_(1), //temporary action ID
     vehicleService_(false),
     nbActions_(0),
     lastState_(0),
@@ -98,8 +109,12 @@ namespace rsilauv
       ser2_ = nh_.advertiseService("powerStatus",&Bridge::runPowerStatus,this);
       ser3_ = nh_.advertiseService("runGOTO_WAYPOINT",&Bridge::runGotoWaypoint,this);
       ser4_ = nh_.advertiseService("abort_Action",&Bridge::runAbortAction,this);
+      ser5_ = nh_.advertiseService("stop_Action",&Bridge::runStopAction,this);
+      ser6_ = nh_.advertiseService("actionStatus",&Bridge::getActionStatus,this);
       // Timer
       timer1_ = nh_.createTimer(ros::Duration(1),&Bridge::messageOut,this);
+
+      
 
       // "EnvironmentData"
       myWater_.temperature = -99999;
@@ -117,6 +132,8 @@ namespace rsilauv
       mySitu_.y = 0;
       mySitu_.z = 0;
 
+
+      
       //
 
       start();
@@ -193,7 +210,13 @@ namespace rsilauv
       }
     }
 
+    //int getState(){
+     // return PCState->state;
+    //}
+    
   private:
+
+    
     ros::NodeHandle& nh_;
     std::string& nodeName_;
 
@@ -216,6 +239,8 @@ namespace rsilauv
     ros::ServiceServer ser2_;
     ros::ServiceServer ser3_;
     ros::ServiceServer ser4_;
+    ros::ServiceServer ser5_;
+    ros::ServiceServer ser6_;
     ros::Timer timer1_;
 
     //! Desired plan id.
@@ -227,6 +252,10 @@ namespace rsilauv
     Water myWater_;
     Situation mySitu_;
 
+    //Action Identification and storage
+    std::vector<Action> actionArray;
+
+
     int cpt_;
     bool flagEntity_;
     int idEntityCTD1_;
@@ -236,22 +265,61 @@ namespace rsilauv
     int lastState_;
 
     utilfctn::TicToc chrono1_;
+    const DUNE::IMC::PlanControlState* PCState;
+    const DUNE::IMC::PlanControlState* lastPCState;
+    const DUNE::IMC::PlanControl* PC;
+
+
+
+//Abort spesific  action, do nothing after. 
 
     bool runAbortAction(g2s_interface::abort_Action::Request &req,
       g2s_interface::abort_Action::Response &res)
     {
-      if (!isConnectedDetermined())
+      if (!isConnectedDetermined()){
+        res.success = false;
         return false;
+      }
 
-      ROS_INFO("[%s] val %d, val2 %d",nodeName_.c_str(),action_id_,req.actionId);
+      //ROS_INFO("[%s] val %d, val2 %d",nodeName_.c_str(),action_id_,req.actionId);
 
       if (req.actionId!=0 && req.actionId!=action_id_)
       {
         ROS_WARN("[%s] Incorrect actionId",nodeName_.c_str());
+        res.success = false;
         return false;
       }
 
       ROS_INFO("[%s] runAbortAction",nodeName_.c_str());
+
+      DUNE::IMC::Abort ab;
+      ab.setDestination(vehicleId_);
+      sendToTcpServer(ab);
+
+      //ABORT EVERYTHING - what happens if the camera/sonar is activated, but the rest is aborted?
+
+      ROS_INFO("plan control state: %d ",res.success);
+      res.success = true;
+      return true;
+
+    }
+
+    bool runStopAction(g2s_interface::abort_Action::Request &req,
+      g2s_interface::abort_Action::Response &res)
+    {
+      if (!isConnectedDetermined()){
+        res.success = false;
+        return false;
+      }
+
+      if (req.actionId!=0 && req.actionId!=action_id_)
+      {
+        ROS_WARN("[%s] Incorrect actionId",nodeName_.c_str());
+        res.success = false;
+        return false;
+      }
+
+      ROS_INFO("[%s] runStopCurrentAction",nodeName_.c_str());
 
       DUNE::IMC::PlanControl pc;
       pc.plan_id = "swarms";
@@ -259,9 +327,70 @@ namespace rsilauv
       pc.type = DUNE::IMC::PlanControl::PC_REQUEST;
       pc.request_id = 1000;
       sendToTcpServer(pc);
+
+      Action currentAction;
+      currentAction.requestTime   = ros::Time::now();
+      currentAction.actionNumber  = action_id_;
+      currentAction.actionPlan    = pc;
+      actionArray.push_back(currentAction);
+      action_id_++;
+
       res.success = true;
       return true;
 
+    }
+
+
+
+    bool  getActionStatus(g2s_interface::actionStatus::Request &req,
+      g2s_interface::actionStatus::Response &res)
+    {
+      if (!isConnectedDetermined())
+        return false;
+
+      /*DUNE::IMC::PlanControl pc;
+      pc.type = DUNE::IMC::PlanControl::PC_IN_PROGRESS;
+      sendToTcpServer(pc);*/
+      uint8_t planState =  PCState->state;
+      ROS_INFO("plan control state: %d ", planState);
+
+      if (req.actionId == (action_id_-1))
+      {
+        if (planState == 2)
+        {
+          res.actionStatus = "INITIALIZING";
+        } else if (planState == 3)
+        {
+          res.actionStatus = "EXECUTING";
+        } else if (planState == 1)
+        {
+          res.actionStatus = "FINNISHED";
+        } else {
+          res.actionStatus = "NONE";
+        }
+      } else if (req.actionId > (action_id_-1))
+      {
+        res.actionStatus = "NOT STARTED";
+      }/*else if (req.actionId == (action_id_-2))
+      {
+        int size = actionArray.size();
+        if (PCState->last_outcome == 1 )
+            {
+              //int size = actionArray.size();
+              actionArray[size-2].success = true;
+              ROS_INFO("Last action was successful");
+            } else if (PCState->last_outcome == 2)
+            {
+              
+              actionArray[size-2].success = false;
+              ROS_INFO("Last action failed");
+            }
+
+      }*/ else {
+        res.actionStatus = "FINNISHED";
+      }
+      ROS_INFO("Plan control state: %d ", planState );
+      return true;
     }
 
     bool runGotoWaypoint(g2s_interface::runGOTO_WAYPOINT::Request &req,
@@ -288,14 +417,22 @@ namespace rsilauv
       DUNE::IMC::PlanManeuver pm;
       DUNE::IMC::PlanSpecification ps;
 
+      //calculate from relative position(NED) in relation to Fixed point.
+      geometry_msgs::Point desiredPoint;
+      desiredPoint = req.waypointPosition;
+      float deltaLat = desiredPoint.y/6386651.041660708; // divided by meters per radian latitude in Trondheim
+      float deltaLon = desiredPoint.x/2862544.348782668; // divided by meters per radian longditude in Trondheim
+
+
       // Goto
-      manGoto.lat = 1.1072639824284860;
-      manGoto.lon = 0.1806556449351842;
-      manGoto.z = 0;
+      manGoto.lat = 1.1072639824284860 + deltaLat; //todo: change to proper zero-point in time 
+      manGoto.lon = 0.1806556449351842 + deltaLon;
+      manGoto.z = desiredPoint.z;
       manGoto.z_units = DUNE::IMC::Z_DEPTH;
+      //manGoto.yaw = 3.14; // todo: implement desired attitude at end of goto
       manGoto.speed = 1.5;
       manGoto.speed_units = DUNE::IMC::SUNITS_METERS_PS;
-      manGoto.timeout = 20.0;
+      manGoto.timeout = 1000;
       // Maneuver
       pm.maneuver_id = "1";
       pm.data.set(manGoto);
@@ -308,11 +445,22 @@ namespace rsilauv
       pc.arg.set(ps);
       sendToTcpServer(pc);
 
+      Action currentAction;
+      currentAction.requestTime   = ros::Time::now();
+      currentAction.actionNumber  = action_id_;
+      currentAction.actionPlan    = pc;
+      actionArray.push_back(currentAction);
+
+      //ROS_INFO("Running actin number: %d",action_id_);
+      action_id_++;
+
       nbActions_ ++;
-      res.actionId = 12345;
+      res.actionId = currentAction.actionNumber;
 
       return true;
     }
+
+
 
     bool runTestSrvRsiLauv(rsi_lauv_ntnu::testSrvRsiLauv::Request &req,
       rsi_lauv_ntnu::testSrvRsiLauv::Response &res)
@@ -490,6 +638,14 @@ namespace rsilauv
       pc.arg.set(ps);
       sendToTcpServer(pc);
 
+      //Action storage 
+      Action currentAction;
+      currentAction.requestTime   = ros::Time::now();
+      currentAction.actionNumber  = action_id_;
+      currentAction.actionPlan    = pc;
+      actionArray.push_back(currentAction);
+      action_id_++;
+
       res.val1 = double(req.ind1);
       res.txt1 = "Service done";
       return true;
@@ -518,6 +674,12 @@ namespace rsilauv
     {
       tcp_client_->write(&msg);
       ROS_INFO("[%s] Sent to TCP Server (PlanControl)",nodeName_.c_str());
+    }
+
+    void sendToTcpServer(const DUNE::IMC::Abort &msg)
+    {
+      tcp_client_->write(&msg);
+      ROS_INFO("[%s] Sent to TCP Server (Abort)",nodeName_.c_str());
     }
 
     bool runPowerStatus(g2s_interface::powerStatus::Request &req,
@@ -566,7 +728,7 @@ namespace rsilauv
             ROS_INFO("\t - (vx,vy,vz): (%f,%f,%f)",float(ppp->vx),float(ppp->vy),float(ppp->vz));
             ROS_INFO("\t - (p,q,r): (%f,%f,%f)",float(ppp->p),float(ppp->q),float(ppp->r));
             ROS_INFO("\t - (depth,alt): (%f,%f)",float(ppp->depth),float(ppp->alt));
-            */
+           */ 
             //ROS_INFO("mysitu");
             break;
           }
@@ -613,9 +775,9 @@ namespace rsilauv
           {
             if (!flagEntity_)
             {
-              ROS_INFO("MSG_ID: %d --> EntityList",int(msg->getId()));
+              //ROS_INFO("MSG_ID: %d --> EntityList",int(msg->getId()));
               const DUNE::IMC::EntityList* ppp = static_cast<const DUNE::IMC::EntityList*>(msg);
-              ROS_INFO("MSG_ID: %d --> EntityList: %s",int(msg->getId()),ppp->list.c_str());
+              //ROS_INFO("MSG_ID: %d --> EntityList: %s",int(msg->getId()),ppp->list.c_str());
               //TODO: Parse EntityList
               flagEntity_ = true;
               idEntityCTD1_ = 39;
@@ -660,13 +822,47 @@ namespace rsilauv
 
           case IMC_ID_PLANCONTROLSTATE : 
           {
-            //TBD
+            //ROS_INFO("PlanControl state responding");
+            /*const DUNE::IMC::PlanControlState*/ 
+            lastPCState = PCState;
+            PCState = static_cast<const DUNE::IMC::PlanControlState*>(msg);
+            //ROS_INFO("plan control state: %d ",PCState->state); 
+
+            /*if (PCState->state ==1 && lastPCState->state == 3 && PC->type == 1 )
+            {
+              int size = actionArray.size();
+              actionArray[size-1].success = true;
+            }*/
+            break;
+          }
+
+          case IMC_ID_PLANCONTROL :
+          {/*
+            PC = static_cast<const DUNE::IMC::PlanControl*>(msg);
+            int size = actionArray.size();
+            if (PC->type == 1 )
+            {
+              //int size = actionArray.size();
+              actionArray[size-1].success = true;
+              ROS_INFO("Last action was successful");
+            } else if (PC->type == 2)
+            {
+              
+              actionArray[size-1].success = false;
+              ROS_INFO("Last action failed");
+            }
+            
+            ROS_INFO("new pc message: %d",actionArray[size-1].success);*/
+            
+
             break;
           }
 
           default : 
-            ROS_INFO("Unknown message type, please identfy message.");
+          {
+            ROS_INFO("Unknown message type, please identify message.");
             ROS_INFO("MSG_ID: %d (?)", int(msg->getId()));
+          }
         }
       }
     }
