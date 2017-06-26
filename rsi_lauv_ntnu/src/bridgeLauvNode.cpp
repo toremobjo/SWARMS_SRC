@@ -11,7 +11,7 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, nodeName, ros::init_options::AnonymousName);
   ros::NodeHandle nh;
-  ROS_INFO("[%s] Here I am ...",nodeName.c_str());
+  //ROS_INFO("[%s] Here I am ...",nodeName.c_str());
 
   std::string serverAddr, serverPort, vehicleName;
   utilfctn::getParam("~server_addr",serverAddr);

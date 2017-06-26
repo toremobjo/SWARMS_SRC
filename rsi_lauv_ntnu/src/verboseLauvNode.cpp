@@ -24,7 +24,7 @@ int main (int argc, char **argv)
 	ros::Subscriber sub1 = nh.subscribe("testMsgRsiLauv_0",1000,&testMsgRsiLauv);
 	ros::Subscriber sub3 = nh.subscribe("endOfAction",1000,&endOfAction);
 
-	ROS_INFO("[%s] ... Coucou ROS ...",nodeName.c_str());
+	//ROS_INFO("[%s] ... Coucou ROS ...",nodeName.c_str());
   ros::spin();
   return 0;
 }

@@ -5,5 +5,8 @@
 #define ACTION_DEF_STOP 	1
 #define ACTION_DEF_GOTO1 	2
 #define ACTION_DEF_GOTO2 	3
+#define ACTION_DEF_GOTO3 	4
+#define ACTION_DEF_GOTO4 	5
+#define ACTION_DEF_PLAN1 	6
 
 #endif

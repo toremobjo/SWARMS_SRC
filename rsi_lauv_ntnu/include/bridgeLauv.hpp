@@ -132,6 +132,9 @@ namespace rsilauv
       mySitu_.y = 0;
       mySitu_.z = 0;
 
+      PCStateCounter = 0;
+      lastPCState = 1;
+      lastLastPCState = 1;
 
       
       //
@@ -264,12 +267,15 @@ namespace rsilauv
 
     int lastState_;
 
+    int PCStateCounter;
+
     utilfctn::TicToc chrono1_;
     const DUNE::IMC::PlanControlState* PCState;
-    const DUNE::IMC::PlanControlState* lastPCState;
+    int lastPCState;
+    int lastLastPCState;
     const DUNE::IMC::PlanControl* PC;
 
-
+    float desiredSpeed;
 
 //Abort spesific  action, do nothing after. 
 
@@ -348,11 +354,7 @@ namespace rsilauv
       if (!isConnectedDetermined())
         return false;
 
-      /*DUNE::IMC::PlanControl pc;
-      pc.type = DUNE::IMC::PlanControl::PC_IN_PROGRESS;
-      sendToTcpServer(pc);*/
       uint8_t planState =  PCState->state;
-      ROS_INFO("plan control state: %d ", planState);
 
       if (req.actionId == (action_id_-1))
       {
@@ -361,10 +363,13 @@ namespace rsilauv
           res.actionStatus = "INITIALIZING";
         } else if (planState == 3)
         {
-          res.actionStatus = "EXECUTING";
+          std::ostringstream oss;
+          oss << "EXECUTING, progress: " << PCState->plan_progress << " %%";  
+          res.actionStatus = oss.str();
+
         } else if (planState == 1)
         {
-          res.actionStatus = "FINNISHED";
+          res.actionStatus = "FINISHED";
         } else {
           res.actionStatus = "NONE";
         }
@@ -379,17 +384,19 @@ namespace rsilauv
               //int size = actionArray.size();
               actionArray[size-2].success = true;
               ROS_INFO("Last action was successful");
+              res.actionStatus = "FINISHED SUCCESSFULLY";
             } else if (PCState->last_outcome == 2)
             {
               
               actionArray[size-2].success = false;
               ROS_INFO("Last action failed");
+              res.actionStatus = "FINISHED UNSUCCESSFULLY";
             }
 
       }*/ else {
-        res.actionStatus = "FINNISHED";
+        res.actionStatus = "FINISHED";
       }
-      ROS_INFO("Plan control state: %d ", planState );
+      ROS_INFO("Plan control state: %d ", planState);
       return true;
     }
 
@@ -403,6 +410,9 @@ namespace rsilauv
         return false;
 
       ROS_INFO("[%s] runGotoWaypoint",nodeName_.c_str());
+
+      //Todo: edit such that it fits service declaration, current declaration(26.06.2017) has 
+      // some redundancies and will probably be changed.
 
       plan_state_id_.clear();
       plan_id_ = "swarms";
@@ -423,6 +433,14 @@ namespace rsilauv
       float deltaLat = desiredPoint.y/6386651.041660708; // divided by meters per radian latitude in Trondheim
       float deltaLon = desiredPoint.x/2862544.348782668; // divided by meters per radian longditude in Trondheim
 
+      //ROS_INFO("Desired speed: %f", req.speed);
+      
+      if (req.speed > 0.01)
+      {
+        desiredSpeed = req.speed;
+      }else{
+        desiredSpeed = 1.6;
+      }
 
       // Goto
       manGoto.lat = 1.1072639824284860 + deltaLat; //todo: change to proper zero-point in time 
@@ -430,9 +448,10 @@ namespace rsilauv
       manGoto.z = desiredPoint.z;
       manGoto.z_units = DUNE::IMC::Z_DEPTH;
       //manGoto.yaw = 3.14; // todo: implement desired attitude at end of goto
-      manGoto.speed = 1.5;
+      manGoto.speed = desiredSpeed;
       manGoto.speed_units = DUNE::IMC::SUNITS_METERS_PS;
       manGoto.timeout = 1000;
+      manGoto.yaw = req.heading;
       // Maneuver
       pm.maneuver_id = "1";
       pm.data.set(manGoto);
@@ -786,6 +805,11 @@ namespace rsilauv
             break;
           }
 
+          /*case IMC_ID_SAVEENTITYPARAMETERS : 
+          {
+            break;
+          }*/
+
           case IMC_ID_CONDUCTIVITY : 
           {
            const DUNE::IMC::Conductivity* ppp = static_cast<const DUNE::IMC::Conductivity*>(msg);
@@ -822,17 +846,34 @@ namespace rsilauv
 
           case IMC_ID_PLANCONTROLSTATE : 
           {
-            //ROS_INFO("PlanControl state responding");
-            /*const DUNE::IMC::PlanControlState*/ 
-            lastPCState = PCState;
+            if (PCStateCounter>2)
+            { 
+              lastLastPCState = lastPCState;
+              lastPCState = PCState->state;
+            }
+            
             PCState = static_cast<const DUNE::IMC::PlanControlState*>(msg);
-            //ROS_INFO("plan control state: %d ",PCState->state); 
+            
 
-            /*if (PCState->state ==1 && lastPCState->state == 3 && PC->type == 1 )
-            {
-              int size = actionArray.size();
-              actionArray[size-1].success = true;
-            }*/
+             if (PCStateCounter > 2)
+              { 
+                //ROS_INFO("Plan Control states: %d  and %d ",PCState->state, lastLastPCState);
+
+                if (PCState->state == 1  && lastLastPCState == 3 /*PCState->state*/)
+                {
+                  int size = actionArray.size();
+                  actionArray[size-1].success = true;
+
+                  g2s_interface::endOfAction msg;
+                  msg.actionId = action_id_-1;
+                  msg.endCode = 1;
+                  pub3_.publish(msg);
+                }
+              } 
+            
+            PCStateCounter++;
+
+
             break;
           }
 
