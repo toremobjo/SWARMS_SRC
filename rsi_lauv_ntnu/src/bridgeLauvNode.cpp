@@ -7,6 +7,7 @@
 
 static std::string nodeName = "bridgeLauvNode";
 
+
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, nodeName, ros::init_options::AnonymousName);

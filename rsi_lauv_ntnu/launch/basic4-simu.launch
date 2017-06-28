@@ -1,0 +1,37 @@
+<launch>
+  <node
+    pkg="rsi_lauv_ntnu"
+    type="bridgeConnection"
+    name="bridgeConnection"
+    output="screen"
+  >
+    <param
+      name="server_addr"
+      type="str"
+      value="127.0.0.1"
+    />
+    <param
+      name="server_port"
+      type="str"
+      value="32603"
+    />
+    <param
+      name="vehicle_name"
+      type="str"
+      value="lauv-simulator-ntnu-1"
+    />
+  </node>
+  <node
+    pkg="rsi_lauv_ntnu"
+    type="verboseLauvNode"
+    name="verboseLauvNode_0"
+    output="screen">
+  </node>
+  <node
+    pkg="g2s_interface"
+    type="fakeRgi_node"
+    name="fakeRgi_node"
+    output="screen">
+  </node>
+</launch>
+<!-- launch-prefix="xterm -e" -->

@@ -11,13 +11,13 @@
 
 static std::string nodeName = "fakeRgi";
 
-class fRgi 
+class fRgi
 {
-public: 
+public:
 	fRgi();
 	void spin();
 
-private: 
+private:
 	ros::NodeHandle nh;
 	ros::Subscriber actions;
 	ros::Subscriber endOfAction_;
@@ -62,7 +62,7 @@ fRgi::fRgi(){
 void fRgi::spin(){
 	ros::Rate loop(1000);
     while(ros::ok()) {
-        
+
         loop.sleep();
         ros::spinOnce();
     }
@@ -78,7 +78,7 @@ void fRgi::runAction(int action){
 	ROS_INFO("Running action: %d ", action);
 	switch(action)
 	{
-		case ACTION_DEF_ABORT 	: abortCurrentMission(); break;
+		case ACTION_DEF_ABORT : abortCurrentMission(); break;
 		case ACTION_DEF_STOP	: stopCurrentAction(); break;
 		case ACTION_DEF_GOTO1	: gotoWay1(); break;
 		case ACTION_DEF_GOTO2	: gotoWay2(); break;
@@ -106,6 +106,7 @@ void fRgi::stopCurrentAction(){
 		ROS_INFO("Stop Successful");
 	}
 	isRunningPath = false;
+
 }
 
 void fRgi::gotoWay1(){
@@ -119,7 +120,9 @@ void fRgi::gotoWay1(){
 	desiredPos.z = 0;
 
 	go.request.waypointPosition = desiredPos;
-	endOfActionBool = false;
+	go.request.heading 					= 3.14/2;
+	endOfActionBool 						= false;
+	planCounter 								= 1;
 
 	if (goto1Client.call(go))
 	{
@@ -136,7 +139,8 @@ void fRgi::gotoWay2(){
 	geometry_msgs::Point desiredPos;
 	desiredPos.x = 50;
 	desiredPos.y = 0;
-	desiredPos.z = 0;
+	desiredPos.z = 4;
+	go.request.heading = 0;
 
 	go.request.waypointPosition = desiredPos;
 	endOfActionBool = false;
@@ -156,7 +160,8 @@ void fRgi::gotoWay3(){
 	geometry_msgs::Point desiredPos;
 	desiredPos.x = 50;
 	desiredPos.y = 50;
-	desiredPos.z = 0;
+	desiredPos.z = 3;
+  go.request.heading = 3*3.14/2;
 
 	go.request.waypointPosition = desiredPos;
 	endOfActionBool = false;
@@ -171,12 +176,13 @@ void fRgi::gotoWay3(){
 void fRgi::gotoWay4(){
 	g2s_interface::runGOTO_WAYPOINT go;
 	go.request.modeId = 1;
+	go.request.heading = 3.14;
 
 	//specify a point
 	geometry_msgs::Point desiredPos;
 	desiredPos.x = 0;
 	desiredPos.y = 50;
-	desiredPos.z = 0;
+	desiredPos.z = 5;
 
 	go.request.waypointPosition = desiredPos;
 	endOfActionBool = false;
@@ -199,7 +205,7 @@ void fRgi::executePlan1(){
 		case 5 : gotoWay1(); break;
 		default : planCounter = 1; isRunningPath=false; break;
 	}
-	
+
 }
 
 void fRgi::endOfActionCallback(const g2s_interface::endOfAction& msg){
@@ -207,12 +213,12 @@ void fRgi::endOfActionCallback(const g2s_interface::endOfAction& msg){
 	planCounter++;
 
 
-	if (isRunningPath && msg.endCode==1)  
+	if (isRunningPath && msg.endCode==1)
 	{
 		ros::Duration(1).sleep();
 		executePlan1();
 	}
-	
+
 }
 
 

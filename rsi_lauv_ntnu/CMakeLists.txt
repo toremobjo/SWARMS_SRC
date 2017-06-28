@@ -74,7 +74,9 @@ add_service_files(
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
    DEPENDENCIES
-   std_msgs  # Or other packages containing msgs
+   std_msgs
+   geometry_msgs
+  # Or other packages containing msgs
 )
 
 ################################################
@@ -137,8 +139,10 @@ include_directories(
 
 ## Declare a C++ executable
 add_executable(zeroLauvNode src/zeroLauvNode.cpp)
-add_executable(bridgeLauvNode src/bridgeLauvNode.cpp)
+#add_executable(bridgeLauvNode src/bridgeLauvNode.cpp)
 add_executable(verboseLauvNode src/verboseLauvNode.cpp)
+#add_executable(actionBridge src/actionBridge.cpp)
+add_executable(bridgeConnection src/bridgeConnection.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -146,8 +150,10 @@ add_executable(verboseLauvNode src/verboseLauvNode.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(zeroLauvNode ${catkin_LIBRARIES})
-target_link_libraries(bridgeLauvNode ${catkin_LIBRARIES} ${DUNE_LIBRARIES})
+#target_link_libraries(bridgeLauvNode ${catkin_LIBRARIES} ${DUNE_LIBRARIES})
 target_link_libraries(verboseLauvNode ${catkin_LIBRARIES})
+#target_link_libraries(actionBridge ${catkin_LIBRARIES} ${DUNE_LIBRARIES})
+target_link_libraries(bridgeConnection ${catkin_LIBRARIES} ${DUNE_LIBRARIES})
 
 #############
 ## Install ##

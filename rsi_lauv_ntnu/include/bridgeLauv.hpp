@@ -59,9 +59,15 @@ namespace rsilauv
   };
   struct Situation
   {
-    float x; // x: North offset (s.t LLH)
-    float y; // y: East offset (s.t LLH)
-    float z; // z: Down offset (s.t LLH)
+    float x, y, z; // x: North, east and down offsets (s.t LLH).
+    float lat, lon, height; // Latitudinal, longditudinal and height position estimate.
+    float phi, theta, psi; // Euler angles for roll, pitch and yaw.
+    float u, v, w; // Velocities in the body-fixed coordinate frame.
+    float vx, vy, vz; // Velocities in the earth-fixed coordinate frame.
+    float p, q, r; //Angular velocity in roll, pitch and yaw (body-fixed).
+    float depth; //Depth below surface.
+    float altitude;
+    int   sequence;
   };
   struct Fuel
   {
@@ -70,7 +76,7 @@ namespace rsilauv
   };
   struct Action
   {
-    ros::Time requestTime; 
+    ros::Time requestTime;
     int actionNumber;
     DUNE::IMC::PlanControl actionPlan;
     bool success;
@@ -114,7 +120,7 @@ namespace rsilauv
       // Timer
       timer1_ = nh_.createTimer(ros::Duration(1),&Bridge::messageOut,this);
 
-      
+
 
       // "EnvironmentData"
       myWater_.temperature = -99999;
@@ -131,12 +137,11 @@ namespace rsilauv
       mySitu_.x = 0;
       mySitu_.y = 0;
       mySitu_.z = 0;
+      mySitu_.sequence = 1;
 
       PCStateCounter = 0;
       lastPCState = 1;
       lastLastPCState = 1;
-
-      
       //
 
       start();
@@ -199,11 +204,11 @@ namespace rsilauv
       }
       if (true)
       {
-        g2s_interface::robotSituation msg_rsit;
+        /*g2s_interface::robotSituation msg_rsit;
         msg_rsit.robotPose.position.x = mySitu_.x;
         msg_rsit.robotPose.position.y = mySitu_.y;
         msg_rsit.robotPose.position.z = mySitu_.z;
-        pub5_.publish(msg_rsit);
+        pub5_.publish(msg_rsit);*/
         //rostopic echo /robotSituation
       }
       if (false)
@@ -213,13 +218,9 @@ namespace rsilauv
       }
     }
 
-    //int getState(){
-     // return PCState->state;
-    //}
-    
   private:
 
-    
+
     ros::NodeHandle& nh_;
     std::string& nodeName_;
 
@@ -277,7 +278,7 @@ namespace rsilauv
 
     float desiredSpeed;
 
-//Abort spesific  action, do nothing after. 
+//Abort spesific  action, do nothing after.
 
     bool runAbortAction(g2s_interface::abort_Action::Request &req,
       g2s_interface::abort_Action::Response &res)
@@ -364,7 +365,7 @@ namespace rsilauv
         } else if (planState == 3)
         {
           std::ostringstream oss;
-          oss << "EXECUTING, progress: " << PCState->plan_progress << " %%";  
+          oss << "EXECUTING, progress: " << PCState->plan_progress << " %%";
           res.actionStatus = oss.str();
 
         } else if (planState == 1)
@@ -387,7 +388,7 @@ namespace rsilauv
               res.actionStatus = "FINISHED SUCCESSFULLY";
             } else if (PCState->last_outcome == 2)
             {
-              
+
               actionArray[size-2].success = false;
               ROS_INFO("Last action failed");
               res.actionStatus = "FINISHED UNSUCCESSFULLY";
@@ -411,7 +412,7 @@ namespace rsilauv
 
       ROS_INFO("[%s] runGotoWaypoint",nodeName_.c_str());
 
-      //Todo: edit such that it fits service declaration, current declaration(26.06.2017) has 
+      //Todo: edit such that it fits service declaration, current declaration(26.06.2017) has
       // some redundancies and will probably be changed.
 
       plan_state_id_.clear();
@@ -434,7 +435,7 @@ namespace rsilauv
       float deltaLon = desiredPoint.x/2862544.348782668; // divided by meters per radian longditude in Trondheim
 
       //ROS_INFO("Desired speed: %f", req.speed);
-      
+
       if (req.speed > 0.01)
       {
         desiredSpeed = req.speed;
@@ -443,7 +444,7 @@ namespace rsilauv
       }
 
       // Goto
-      manGoto.lat = 1.1072639824284860 + deltaLat; //todo: change to proper zero-point in time 
+      manGoto.lat = 1.1072639824284860 + deltaLat; //todo: change to proper zero-point in time
       manGoto.lon = 0.1806556449351842 + deltaLon;
       manGoto.z = desiredPoint.z;
       manGoto.z_units = DUNE::IMC::Z_DEPTH;
@@ -657,7 +658,7 @@ namespace rsilauv
       pc.arg.set(ps);
       sendToTcpServer(pc);
 
-      //Action storage 
+      //Action storage
       Action currentAction;
       currentAction.requestTime   = ros::Time::now();
       currentAction.actionNumber  = action_id_;
@@ -727,39 +728,74 @@ namespace rsilauv
       {
         switch(msg->getId()){
 
-          case IMC_ID_ESTIMATEDSTATE : 
-          { 
+          case IMC_ID_ESTIMATEDSTATE :
+          {
             const DUNE::IMC::EstimatedState* ppp = static_cast<const DUNE::IMC::EstimatedState*>(msg);
-            mySitu_.x = ppp->x;
-            mySitu_.y = ppp->y;
-            mySitu_.z = ppp->z;
+            mySitu_.x     = ppp->x;
+            mySitu_.y     = ppp->y;
+            mySitu_.z     = ppp->z;
+            mySitu_.lat   = ppp->lat;
+            mySitu_.lon   = ppp->lon;
+            mySitu_.height= ppp->height;
+            mySitu_.phi   = ppp->phi;
+            mySitu_.theta = ppp->theta;
+            mySitu_.psi   = ppp->psi;
+            mySitu_.u     = ppp->u;
+            mySitu_.v     = ppp->v;
+            mySitu_.w     = ppp->w;
+            mySitu_.vx    = ppp->vx;
+            mySitu_.vy    = ppp->vy;
+            mySitu_.vz    = ppp->vz;
+            mySitu_.p     = ppp->p;
+            mySitu_.q     = ppp->q;
+            mySitu_.r     = ppp->r;
+            mySitu_.depth = ppp->depth;
+            mySitu_.altitude = ppp->alt;
 
-              /*
-            ROS_INFO("MSG_ID: %d --> EstimatedState",int(msg->getId()));
-            float lat;
-            float lon;
-            lat = ppp->lat-1.107256;
-            lon = ppp->lon-0.180620;
-            ROS_INFO("\t - (lat,lon,height): (%e,%e,%f)",lat,lon,float(ppp->height));
-            ROS_INFO("\t - (x,y,z): (%f,%f,%f)",float(ppp->x),float(ppp->y),float(ppp->z));
-            ROS_INFO("\t - (phi,theta,psi): (%f,%f,%f)",float(ppp->phi),float(ppp->theta),float(ppp->psi));
-            ROS_INFO("\t - (u,v,w): (%f,%f,%f)",float(ppp->u),float(ppp->v),float(ppp->w));
-            ROS_INFO("\t - (vx,vy,vz): (%f,%f,%f)",float(ppp->vx),float(ppp->vy),float(ppp->vz));
-            ROS_INFO("\t - (p,q,r): (%f,%f,%f)",float(ppp->p),float(ppp->q),float(ppp->r));
-            ROS_INFO("\t - (depth,alt): (%f,%f)",float(ppp->depth),float(ppp->alt));
-           */ 
-            //ROS_INFO("mysitu");
+            // generate g2s robot situation message
+            g2s_interface::robotSituation situ;
+            //Point posiiton
+            situ.robotPose.position.x   = mySitu_.x;
+            situ.robotPose.position.y   = mySitu_.y;
+            situ.robotPose.position.z   = mySitu_.z;
+
+            //Quaternion orientation
+            double t0 = std::cos(mySitu_.psi * 0.5);
+          	double t1 = std::sin(mySitu_.psi * 0.5);
+          	double t2 = std::cos(mySitu_.phi * 0.5);
+          	double t3 = std::sin(mySitu_.phi * 0.5);
+          	double t4 = std::cos(mySitu_.theta * 0.5);
+          	double t5 = std::sin(mySitu_.theta * 0.5);
+          	situ.robotPose.orientation.w = t0 * t2 * t4 + t1 * t3 * t5;
+          	situ.robotPose.orientation.x = t0 * t3 * t4 - t1 * t2 * t5;
+          	situ.robotPose.orientation.y = t0 * t2 * t5 + t1 * t3 * t4;
+          	situ.robotPose.orientation.z = t1 * t2 * t4 - t0 * t3 * t5;
+
+            //Body forward speed u
+            situ.robotSpeed = mySitu_.u;
+
+            // Header: stamp, name and sequence number
+            situ.header.stamp     = ros::Time::now();
+            situ.header.frame_id  = "NTNU_LAUV_1";
+            situ.header.seq       =  mySitu_.sequence;
+            mySitu_.sequence++;
+
+            // Altitude above the sea floor
+            situ.robotAltitude = mySitu_.altitude;
+
+            //Publish situation message
+            pub5_.publish(situ);
             break;
           }
 
-          case IMC_ID_ANNOUNCE : 
+          case IMC_ID_ANNOUNCE :
           {
             //TBD
             //ROS_INFO("Announce");
             break;
           }
 
-          case IMC_ID_VEHICLESTATE : 
+          case IMC_ID_VEHICLESTATE :
           {
             const DUNE::IMC::VehicleState* ppp = static_cast<const DUNE::IMC::VehicleState*>(msg);
             vehicleService_ = ppp->op_mode==DUNE::IMC::VehicleState::VS_SERVICE;
@@ -767,14 +803,14 @@ namespace rsilauv
             break;
           }
 
-          case IMC_ID_HEARTBEAT : 
+          case IMC_ID_HEARTBEAT :
           {
             //TBD
             //ROS_INFO("heartbeat");
             break;
           }
-          
-          case IMC_ID_FUELLEVEL : 
+
+          case IMC_ID_FUELLEVEL :
           {
             const DUNE::IMC::FuelLevel* ppp = static_cast<const DUNE::IMC::FuelLevel*>(msg);
             // trace("Operation modes are: %s\nPercentage is %.2f\nConfidence level is %.2f\n",
@@ -783,14 +819,14 @@ namespace rsilauv
             break;
           }
 
-          case IMC_ID_ENTITYACTIVATIONSTATE : 
+          case IMC_ID_ENTITYACTIVATIONSTATE :
           {
             //TBD
             //ROS_INFO("EntityActivationState");
             break;
           }
 
-          case IMC_ID_ENTITYLIST : 
+          case IMC_ID_ENTITYLIST :
           {
             if (!flagEntity_)
             {
@@ -805,12 +841,12 @@ namespace rsilauv
             break;
           }
 
-          /*case IMC_ID_SAVEENTITYPARAMETERS : 
+          /*case IMC_ID_SAVEENTITYPARAMETERS :
           {
             break;
           }*/
 
-          case IMC_ID_CONDUCTIVITY : 
+          case IMC_ID_CONDUCTIVITY :
           {
            const DUNE::IMC::Conductivity* ppp = static_cast<const DUNE::IMC::Conductivity*>(msg);
            myWater_.conductivity = ppp->value;
@@ -831,7 +867,7 @@ namespace rsilauv
             break;
           }
 
-          case IMC_ID_SOUNDSPEED : 
+          case IMC_ID_SOUNDSPEED :
           {
           const DUNE::IMC::SoundSpeed* ppp = static_cast<const DUNE::IMC::SoundSpeed*>(msg);
           myWater_.soundSpeed = ppp->value;
@@ -844,19 +880,19 @@ namespace rsilauv
             break;
           }
 
-          case IMC_ID_PLANCONTROLSTATE : 
+          case IMC_ID_PLANCONTROLSTATE :
           {
             if (PCStateCounter>2)
-            { 
+            {
               lastLastPCState = lastPCState;
               lastPCState = PCState->state;
             }
-            
+
             PCState = static_cast<const DUNE::IMC::PlanControlState*>(msg);
-            
+
 
              if (PCStateCounter > 2)
-              { 
+              {
                 //ROS_INFO("Plan Control states: %d  and %d ",PCState->state, lastLastPCState);
 
                 if (PCState->state == 1  && lastLastPCState == 3 /*PCState->state*/)
@@ -869,8 +905,8 @@ namespace rsilauv
                   msg.endCode = 1;
                   pub3_.publish(msg);
                 }
-              } 
-            
+              }
+
             PCStateCounter++;
 
 
@@ -888,18 +924,18 @@ namespace rsilauv
               ROS_INFO("Last action was successful");
             } else if (PC->type == 2)
             {
-              
+
               actionArray[size-1].success = false;
               ROS_INFO("Last action failed");
             }
-            
+
             ROS_INFO("new pc message: %d",actionArray[size-1].success);*/
-            
+
 
             break;
           }
 
-          default : 
+          default :
           {
             ROS_INFO("Unknown message type, please identify message.");
             ROS_INFO("MSG_ID: %d (?)", int(msg->getId()));
