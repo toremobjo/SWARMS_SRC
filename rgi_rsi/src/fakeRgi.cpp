@@ -42,9 +42,7 @@ private:
 	bool res;
 	bool endOfActionBool;
 	bool isRunningPath;
-
 	int planCounter;
-
 };
 
 fRgi::fRgi(){

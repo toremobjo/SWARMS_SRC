@@ -245,11 +245,8 @@ namespace rsilauv
 
       return true;
     }
-
-
     // Move or remove
-
-    bool runTestSrvRsiLauv(rsi_lauv_ntnu::testSrvRsiLauv::Request &req,
+    /*bool runTestSrvRsiLauv(rsi_lauv_ntnu::testSrvRsiLauv::Request &req,
       rsi_lauv_ntnu::testSrvRsiLauv::Response &res)
     {
       if (!isConnectedDetermined())
@@ -436,7 +433,7 @@ namespace rsilauv
       res.val1 = double(req.ind1);
       res.txt1 = "Service done";
       return true;
-    }
+    }*/
 
     //TODO: Peut on passer par un Template
     void sendToTcpServer(const DUNE::IMC::SetEntityParameters &msg)
@@ -491,25 +488,9 @@ namespace rsilauv
     void determineVehicleId(const DUNE::IMC::Announce* msg);
 
     // Copy/Past form OMST
-    void start(void)
-    {
-      stop();
-      tcp_client_ = new ros_imc_broker::TcpLink(boost::bind(&Bridge::messageIn, this, _1));
-      tcp_client_->setServer(serverAddr_, serverPort_);
-      tcp_client_thread_ = new boost::thread(boost::ref(*tcp_client_));
-    }
+    void start(void);
     // Copy/Past form OMST
-    void stop(void)
-    {
-      if (tcp_client_thread_ == NULL)
-        return;
-      tcp_client_thread_->interrupt();
-      tcp_client_thread_->join();
-      delete tcp_client_thread_;
-      tcp_client_thread_ = NULL;
-      delete tcp_client_;
-      tcp_client_ = NULL;
-    }
+    void stop(void);
   };
 }
 

@@ -52,48 +52,40 @@ namespace rsilauv{
   class ActionBridge{
   public:
       //Constructor
-      ActionBridge(ros::NodeHandle& node_handle,
-      std::string& nodeName,
-      std::string& serverAddr,
-      std::string& serverPort,
-      std::string& vehicleName);
+      ActionBridge();
       //Destructor
-      ~ActionBridge(void)
-      {
-        stop();
-      }
+    //  ~ActionBridge(void)
+    //  {
+      //  stop();
+      //}
       //Functions
       bool runGotoWaypoint(g2s_interface::runGOTO_WAYPOINT::Request &req,
         g2s_interface::runGOTO_WAYPOINT::Response &res);
-      bool isConnectedDetermined(void);
-      bool isVehicleIdDetermined();
-      void start(void);
-      void stop(void);
-      
+
+
   private:
-    ros::NodeHandle& nh_;
-    std::string& nodeName_;
+    ros::NodeHandle nh_;
+    //std::string& nodeName_;
+    //Bridge::Bridge()
 
-    std::string& serverAddr_;
-    std::string& serverPort_;
-    ros_imc_broker::TcpLink* tcp_client_;         // TCP client to DUNE's server
-    boost::thread* tcp_client_thread_;            // TCP client thread
+    //std::string& serverAddr_;
+    //std::string& serverPort_;
+    //ros_imc_broker::TcpLink* tcp_client_;         // TCP client to DUNE's server
+    //boost::thread* tcp_client_thread_;            // TCP client thread
 
-    std::string& vehicleName_;
-    int vehicleId_;
-    bool vehicleService_;
-    int nbActions_;
+    //std::string& vehicleName_;
+
 
     //! Desired plan id.
-    std::string plan_id_;
+  //  std::string plan_id_;
     int action_id_;
 
     //! Executing plan id.
-    std::string plan_state_id_;
+    //std::string plan_state_id_;
     int lastState_;
-    int PCStateCounter;
-    bool flagEntity_;
-    bool flagInitPlanOutCome_;
+    //int PCStateCounter;
+    //bool flagEntity_;
+    //bool flagInitPlanOutCome_;
 
     ros::ServiceServer gotoServer;
     ros::ServiceServer loiterServer;

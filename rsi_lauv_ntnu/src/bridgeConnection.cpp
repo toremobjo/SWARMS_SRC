@@ -478,6 +478,25 @@ namespace rsilauv{
       vehicleId_ = msg->getSource();
   }
 
+  void Bridge::start(void)
+  {
+    stop();
+    tcp_client_ = new ros_imc_broker::TcpLink(boost::bind(&Bridge::messageIn, this, _1));
+    tcp_client_->setServer(serverAddr_, serverPort_);
+    tcp_client_thread_ = new boost::thread(boost::ref(*tcp_client_));
+  }
+
+  void Bridge::stop(void)
+  {
+    if (tcp_client_thread_ == NULL)
+      return;
+    tcp_client_thread_->interrupt();
+    tcp_client_thread_->join();
+    delete tcp_client_thread_;
+    tcp_client_thread_ = NULL;
+    delete tcp_client_;
+    tcp_client_ = NULL;
+  }
 }
 
 
