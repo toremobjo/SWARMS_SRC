@@ -95,6 +95,7 @@ void fRgi::abortCurrentMission(){
 		ROS_INFO("Abort Successful");
 	}
 	isRunningPath = false;
+	planCounter = 1;
 }
 
 void fRgi::stopCurrentAction(){
@@ -104,6 +105,7 @@ void fRgi::stopCurrentAction(){
 		ROS_INFO("Stop Successful");
 	}
 	isRunningPath = false;
+	planCounter = 1;
 
 }
 
@@ -126,7 +128,6 @@ void fRgi::gotoWay1(){
 	{
 		ROS_INFO("Go to waypoint 1, successfully sent.");
 	}
-
 }
 
 void fRgi::gotoWay2(){
@@ -190,7 +191,6 @@ void fRgi::gotoWay4(){
 	{
 		ROS_INFO("Go to waypoint 4, successfully sent.");
 	}
-
 }
 
 void fRgi::executePlan1(){
@@ -200,7 +200,7 @@ void fRgi::executePlan1(){
 		case 2 : gotoWay2(); break;
 		case 3 : gotoWay3(); break;
 		case 4 : gotoWay4(); break;
-		case 5 : gotoWay1(); break;
+		case 5 : gotoWay1() ; break;
 		default : planCounter = 1; isRunningPath=false; break;
 	}
 

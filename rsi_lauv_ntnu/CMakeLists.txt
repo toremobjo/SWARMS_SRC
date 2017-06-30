@@ -62,6 +62,7 @@ add_message_files(
 add_service_files(
   FILES
   testSrvRsiLauv.srv
+  testStationKeeping.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -141,7 +142,7 @@ include_directories(
 add_executable(zeroLauvNode src/zeroLauvNode.cpp)
 #add_executable(bridgeLauvNode src/bridgeLauvNode.cpp)
 add_executable(verboseLauvNode src/verboseLauvNode.cpp)
-add_executable(actionBridge src/actionBridge.cpp)
+#add_executable(actionBridge src/actionBridge.cpp)
 add_executable(bridgeConnection src/bridgeConnection.cpp)
 
 ## Add cmake target dependencies of the executable
@@ -152,7 +153,7 @@ add_executable(bridgeConnection src/bridgeConnection.cpp)
 target_link_libraries(zeroLauvNode ${catkin_LIBRARIES})
 #target_link_libraries(bridgeLauvNode ${catkin_LIBRARIES} ${DUNE_LIBRARIES})
 target_link_libraries(verboseLauvNode ${catkin_LIBRARIES})
-target_link_libraries(actionBridge ${catkin_LIBRARIES} ${DUNE_LIBRARIES})
+#target_link_libraries(actionBridge ${catkin_LIBRARIES} ${DUNE_LIBRARIES})
 target_link_libraries(bridgeConnection ${catkin_LIBRARIES} ${DUNE_LIBRARIES})
 
 #############

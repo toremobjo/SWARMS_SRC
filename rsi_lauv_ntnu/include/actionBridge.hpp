@@ -40,31 +40,27 @@
 #include <utilFctn.hpp>
 #include <imcIdDefs.h>
 
-namespace rsilauv{
-  struct Actions
+namespace rsilauvActions{
+/*  struct Actions
   {
     ros::Time requestTime;
     int actionNumber;
     DUNE::IMC::PlanControl actionPlan;
     bool success;
-  };
+  };*/
 
-  class ActionBridge{
+  /*class ActionBridge{
   public:
       //Constructor
       ActionBridge();
-      //Destructor
-    //  ~ActionBridge(void)
-    //  {
-      //  stop();
-      //}
-      //Functions
       bool runGotoWaypoint(g2s_interface::runGOTO_WAYPOINT::Request &req,
         g2s_interface::runGOTO_WAYPOINT::Response &res);
+      DUNE::IMC::PlanControl actionBridgeGoto(g2s_interface::runGOTO_WAYPOINT::Request &req,
+          g2s_interface::runGOTO_WAYPOINT::Response &res);
 
 
   private:
-    ros::NodeHandle nh_;
+
     //std::string& nodeName_;
     //Bridge::Bridge()
 
@@ -87,13 +83,7 @@ namespace rsilauv{
     //bool flagEntity_;
     //bool flagInitPlanOutCome_;
 
-    ros::ServiceServer gotoServer;
-    ros::ServiceServer loiterServer;
-    ros::ServiceServer stopServer;
-    ros::ServiceServer abortServer;
-    ros::ServiceServer stationkeepingServer;
-    ros::ServiceServer hoverServer;
-
-
-  };
+  };*/
+  int actionBridgeTest();
+  DUNE::IMC::PlanControl actionBridgeGoto(g2s_interface::runGOTO_WAYPOINT::Request req);
 }

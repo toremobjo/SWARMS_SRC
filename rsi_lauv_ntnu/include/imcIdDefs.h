@@ -29,6 +29,9 @@
 #define IMC_ID_ABORT 550
 #define IMC_ID_ABORTED 889
 
+#define IMC_ID_STATIONKEEPING 461
+
+
 
 
 #endif

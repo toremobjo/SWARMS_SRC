@@ -4,6 +4,7 @@
 // Local headers
 #include <bridgeConnection.hpp>
 #include <utilFctn.hpp>
+#include <actionBridge.hpp>
 
 static std::string nodeName = "bridgeLauvNode";
 
@@ -23,7 +24,6 @@ namespace rsilauv{
   vehicleId_(-1),
   action_id_(1), //temporary action ID
   vehicleService_(false),
-  nbActions_(0),
   lastState_(0),
   flagInitPlanOutCome_(true),
   flagEntity_(false)
@@ -41,6 +41,7 @@ namespace rsilauv{
     ser4_ = nh_.advertiseService("abort_Action",&Bridge::runAbortAction,this);
     ser5_ = nh_.advertiseService("stop_Action",&Bridge::runStopAction,this);
     ser6_ = nh_.advertiseService("actionStatus",&Bridge::getActionStatus,this);
+    ser7_ = nh_.advertiseService("stationkeepingHere",&Bridge::runStationKeeping,this);
     // Timer
     timer1_ = nh_.createTimer(ros::Duration(1),&Bridge::messageOut,this);
 
@@ -223,6 +224,149 @@ namespace rsilauv{
     return true;
   }
 
+  bool Bridge::runGotoWaypoint(g2s_interface::runGOTO_WAYPOINT::Request &req,
+    g2s_interface::runGOTO_WAYPOINT::Response &res)
+  {
+    if (!isConnectedDetermined())
+      return false;
+
+    if (!isServiceMode())
+      return false;
+
+    ROS_INFO("[%s] runGotoWaypoint",nodeName_.c_str());
+
+    //Todo: edit such that it fits service declaration, current declaration(26.06.2017) has
+    // some redundancies and will probably be changed.
+    plan_state_id_.clear();
+    plan_id_ = "swarms";
+
+    DUNE::IMC::PlanControl pc;
+    pc = actionUtil::actionUtilMakePCGoto(req,res);
+    sendToTcpServer(pc);
+
+    Action currentAction;
+    currentAction.requestTime   = ros::Time::now();
+    currentAction.actionNumber  = action_id_;
+    currentAction.actionPlan    = pc;
+    actionArray.push_back(currentAction);
+
+    //ROS_INFO("Running actin number: %d",action_id_);
+    action_id_++;
+    res.actionId = currentAction.actionNumber;
+
+    return true;
+  }
+
+  bool Bridge::runStationKeeping(rsi_lauv_ntnu::testStationKeeping::Request &req,
+  rsi_lauv_ntnu::testStationKeeping::Response &res){
+
+    if (!isConnectedDetermined())
+      return false;
+
+    if (!isServiceMode())
+      return false;
+
+    /*plan_state_id_.clear();
+    plan_id_ = "swarms";
+
+    DUNE::IMC::PlanSpecification ps;
+    DUNE::IMC::PlanControl pc;
+    DUNE::IMC::StationKeeping sk;
+    DUNE::IMC::PlanManeuver pm;
+    sk.lat      = mySitu_.lat;
+    sk.lon      = mySitu_.lon;
+    sk.z        = mySitu_.z;
+    sk.z_units  = DUNE::IMC::Z_DEPTH;
+    sk.radius   = 20;
+    sk.duration  = 0;
+
+    pm.maneuver_id = "1";
+    pm.data.set(sk);
+    // Specification
+    ps.plan_id = plan_id_;
+    ps.start_man_id = pm.maneuver_id;
+    ps.maneuvers.push_back(pm);
+
+    // PLAN CONTROL
+    pc.arg.set(ps);
+
+    sendToTcpServer(pc);
+
+    Action currentAction;
+    currentAction.requestTime   = ros::Time::now();
+    currentAction.actionNumber  = action_id_;
+    //currentAction.actionPlan    = sk;
+    actionArray.push_back(currentAction);
+
+    //ROS_INFO("Running actin number: %d",action_id_);
+    action_id_++;
+    res.actionId = currentAction.actionNumber;*/
+
+    std::string plan_id_ = "swarms";
+    float desiredSpeed;
+
+    DUNE::IMC::PlanControl pc;
+    pc.plan_id = plan_id_;
+    pc.op = DUNE::IMC::PlanControl::PC_START;
+    pc.type = DUNE::IMC::PlanControl::PC_REQUEST;
+    pc.request_id = 1000;
+
+    DUNE::IMC::StationKeeping sk;
+    DUNE::IMC::PlanManeuver pm;
+    DUNE::IMC::PlanSpecification ps;
+
+    //calculate from relative position(NED) in relation to Fixed point.
+    geometry_msgs::Point desiredPoint;
+    //desiredPoint = mySitu_.;
+    //float deltaLat = desiredPoint.y/6386651.041660708; // divided by meters per radian latitude in Trondheim
+    //float deltaLon = desiredPoint.x/2862544.348782668; // divided by meters per radian longditude in Trondheim
+
+    //ROS_INFO("Desired speed: %f", req.speed);
+    //if (req.speed > 0.01)
+    //{
+    //  desiredSpeed = req.speed;
+  //  }else{
+      desiredSpeed = 1.6;
+  //  }
+
+    // Goto
+    sk.lat = mySitu_.lat;//1.1072639824284860;// + deltaLat; //todo: change to proper zero-point in time
+    sk.lon = mySitu_.lon;//0.1806556449351842;// + deltaLon;
+    sk.z = mySitu_.z; //desiredPoint.z;
+    sk.z_units = DUNE::IMC::Z_DEPTH;
+    sk.radius = 20;
+    //manGoto.yaw = 3.14; // todo: implement desired attitude at end of goto
+    sk.speed = desiredSpeed;
+    sk.speed_units = DUNE::IMC::SUNITS_METERS_PS;
+    //manGoto.timeout = 1000;
+    //manGoto.yaw = req.heading;
+    // Maneuver
+    pm.maneuver_id = "123";
+    pm.data.set(sk);
+    // Specification
+    ps.plan_id = pc.plan_id;
+    ps.start_man_id = pm.maneuver_id;
+    ps.maneuvers.push_back(pm);
+
+    // PLAN CONTROL
+    pc.arg.set(ps);
+
+    sendToTcpServer(pc);
+
+    Action currentAction;
+    currentAction.requestTime   = ros::Time::now();
+    currentAction.actionNumber  = action_id_;
+    currentAction.actionPlan    = pc;
+    actionArray.push_back(currentAction);
+
+    //ROS_INFO("Running actin number: %d",action_id_);
+    action_id_++;
+    res.actionId = currentAction.actionNumber;
+
+    return true;
+  }
+
+
   bool Bridge::runPowerStatus(g2s_interface::powerStatus::Request &req,
     g2s_interface::powerStatus::Response &res)
   {
@@ -236,6 +380,7 @@ namespace rsilauv{
       res.powered = false;
     return true;
   }
+
 
   void Bridge::messageIn(const DUNE::IMC::Message* msg)
   {
@@ -255,8 +400,10 @@ namespace rsilauv{
           mySitu_.x     = ppp->x;
           mySitu_.y     = ppp->y;
           mySitu_.z     = ppp->z;
-          mySitu_.lat   = ppp->lat;
-          mySitu_.lon   = ppp->lon;
+          //mySitu_.lat   = ppp->lat;
+          //mySitu_.lon   = ppp->lon;
+          mySitu_.latlin= ppp->lat;
+          mySitu_.lonlin= ppp->lon;
           mySitu_.height= ppp->height;
           mySitu_.phi   = ppp->phi;
           mySitu_.theta = ppp->theta;
@@ -273,6 +420,13 @@ namespace rsilauv{
           mySitu_.depth = ppp->depth;
           mySitu_.altitude = ppp->alt;
 
+          //Calculate the estimated longditude and latitude from lineariziation
+          //around the local origin of DUNE latitude and lingditude
+          //This will most likely be set to the origin point.
+          mySitu_.lat = mySitu_.latlin + mySitu_.x/6371000.0;
+          mySitu_.lon = mySitu_.lonlin + mySitu_.y/(6371000.0*cos(mySitu_.latlin));
+
+          //ROS_INFO("My estimated latitude: %.20f xpos: %.20f",mySitu_.lat,mySitu_.x);
           // generate g2s robot situation message
           g2s_interface::robotSituation situ;
           //Point posiiton
@@ -420,10 +574,17 @@ namespace rsilauv{
           break;
         }
 
+        case IMC_ID_STATIONKEEPING:
+        {
+          ROS_INFO("Recieved stationkeeping IMC message");
+        }
+
         case IMC_ID_PLANCONTROL :
         {
           break;
         }
+
+
 
         default :
         {
