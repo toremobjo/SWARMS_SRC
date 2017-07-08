@@ -139,22 +139,24 @@ include_directories(
 # add_dependencies(rsi_lauv_ntnu ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(zeroLauvNode src/zeroLauvNode.cpp)
+#add_executable(zeroLauvNode src/zeroLauvNode.cpp)
 #add_executable(bridgeLauvNode src/bridgeLauvNode.cpp)
-add_executable(verboseLauvNode src/verboseLauvNode.cpp)
+#add_executable(verboseLauvNode src/verboseLauvNode.cpp)
 #add_executable(actionBridge src/actionBridge.cpp)
 add_executable(bridgeConnection src/bridgeConnection.cpp)
+add_executable(fakeRgi src/fakeRgi.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(rsi_lauv_ntnu_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(zeroLauvNode ${catkin_LIBRARIES})
+#target_link_libraries(zeroLauvNode ${catkin_LIBRARIES})
 #target_link_libraries(bridgeLauvNode ${catkin_LIBRARIES} ${DUNE_LIBRARIES})
-target_link_libraries(verboseLauvNode ${catkin_LIBRARIES})
+#target_link_libraries(verboseLauvNode ${catkin_LIBRARIES})
 #target_link_libraries(actionBridge ${catkin_LIBRARIES} ${DUNE_LIBRARIES})
 target_link_libraries(bridgeConnection ${catkin_LIBRARIES} ${DUNE_LIBRARIES})
+target_link_libraries(fakeRgi ${catkin_LIBRARIES} ${DUNE_LIBRARIES})
 
 #############
 ## Install ##

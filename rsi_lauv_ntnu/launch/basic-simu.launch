@@ -1,14 +1,8 @@
 <launch>
   <node
     pkg="rsi_lauv_ntnu"
-    type="zeroLauvNode"
-    name="zeroLauvNode_0"
-    output="screen">
-  </node>
-  <node
-    pkg="rsi_lauv_ntnu"
-    type="bridgeLauvNode"
-    name="bridgeLauvNode_0"
+    type="bridgeConnection"
+    name="bridgeConnection"
     output="screen"
   >
     <param
@@ -29,10 +23,15 @@
   </node>
   <node
     pkg="rsi_lauv_ntnu"
-    type="verboseLauvNode"
-    name="verboseLauvNode_0"
-    launch-prefix="xterm -e"
+    type="fakeRgi"
+    name="fakeRgi"
     output="screen">
   </node>
 </launch>
 <!-- launch-prefix="xterm -e" -->
+<!-- <node
+  pkg="rsi_lauv_ntnu"
+  type="verboseLauvNode"
+  name="verboseLauvNode_0"
+  output="screen">
+</node> -->

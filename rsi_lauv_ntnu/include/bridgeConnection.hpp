@@ -10,8 +10,8 @@
 #include <geometry_msgs/Point.h>
 
 
-#include "rsi_lauv_ntnu/testMsgRsiLauv.h"
-#include "rsi_lauv_ntnu/testSrvRsiLauv.h"
+//#include "rsi_lauv_ntnu/testMsgRsiLauv.h"
+//#include "rsi_lauv_ntnu/testSrvRsiLauv.h"
 #include "rsi_lauv_ntnu/testStationKeeping.h"
 
 // RSI headers
@@ -34,6 +34,8 @@
 // Boost headers.
 #include <boost/thread/thread.hpp>
 #include <boost/shared_ptr.hpp>
+
+#include <map>
 
 // DUNE headers.
 #include <DUNE/DUNE.hpp>
@@ -114,17 +116,9 @@ namespace rsilauv
     int vehicleId_;
     bool vehicleService_;
 
-    ros::Publisher pub1_;
-    ros::Publisher pub2_;
-    ros::Publisher pub3_;
-    ros::Publisher pub4_;
-    ros::Publisher pub5_;
-    ros::ServiceServer ser1_;
-    ros::ServiceServer ser2_;
-    ros::ServiceServer ser3_;
-    ros::ServiceServer ser4_;
-    ros::ServiceServer ser5_;
-    ros::ServiceServer ser6_;
+    std::map<std::string, ros::Publisher> pubMap_;
+    std::map<std::string, ros::ServiceServer> serMap_;
+
     ros::ServiceServer ser7_;
     ros::Timer timer1_;
 
@@ -177,7 +171,7 @@ namespace rsilauv
     bool runStationKeeping(rsi_lauv_ntnu::testStationKeeping::Request &req,
     rsi_lauv_ntnu::testStationKeeping::Response &res);
 
-    //TODO: Peut on passer par un Template
+    //TODO: Can we use a template here
     void sendToTcpServer(const DUNE::IMC::SetEntityParameters &msg)
     {
       tcp_client_->write(&msg);

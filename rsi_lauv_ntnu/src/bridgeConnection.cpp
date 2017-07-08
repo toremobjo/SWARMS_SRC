@@ -4,7 +4,7 @@
 // Local headers
 #include <bridgeConnection.hpp>
 #include <utilFctn.hpp>
-#include <actionBridge.hpp>
+// #include <actionBridge.hpp>
 
 static std::string nodeName = "bridgeLauvNode";
 
@@ -28,20 +28,22 @@ namespace rsilauv{
   flagInitPlanOutCome_(true),
   flagEntity_(false)
   {
+
     // Messages
-    pub1_ = nh_.advertise<rsi_lauv_ntnu::testMsgRsiLauv>("testMsgRsiLauv_0",1000);
-    pub2_ = nh_.advertise<g2s_interface::robotStatus>("robotStatus",1000);
-    pub3_ = nh_.advertise<g2s_interface::endOfAction>("endOfAction",1000);
-    pub4_ = nh_.advertise<g2s_interface::environmentData>("environmentData",1000);
-    pub5_ = nh_.advertise<g2s_interface::robotSituation>("robotSituation",1000);
+    pubMap_["robotStatus"] = nh_.advertise<g2s_interface::robotStatus>("robotStatus",1000);
+    pubMap_["endOfAction"] = nh_.advertise<g2s_interface::endOfAction>("endOfAction",1000);
+    pubMap_["environmentData"] = nh_.advertise<g2s_interface::environmentData>("environmentData",1000);
+    pubMap_["robotSituation"] = nh_.advertise<g2s_interface::robotSituation>("robotSituation",1000);
+
     // Services
-    //ser1_ = nh_.advertiseService("testSrvRsiLauv_0",&Bridge::runTestSrvRsiLauv,this);
-    ser2_ = nh_.advertiseService("powerStatus",&Bridge::runPowerStatus,this);
-    ser3_ = nh_.advertiseService("runGOTO_WAYPOINT",&Bridge::runGotoWaypoint,this);
-    ser4_ = nh_.advertiseService("abort_Action",&Bridge::runAbortAction,this);
-    ser5_ = nh_.advertiseService("stop_Action",&Bridge::runStopAction,this);
-    ser6_ = nh_.advertiseService("actionStatus",&Bridge::getActionStatus,this);
+    serMap_["powerStatus"] = nh_.advertiseService("powerStatus",&Bridge::runPowerStatus,this);
+    serMap_["runGOTO_WAYPOINT"] = nh_.advertiseService("runGOTO_WAYPOINT",&Bridge::runGotoWaypoint,this);
+    serMap_["abort_Action"] = nh_.advertiseService("abort_Action",&Bridge::runAbortAction,this);
+    serMap_["stop_Action"] = nh_.advertiseService("stop_Action",&Bridge::runStopAction,this);
+    serMap_["actionStatus"] = nh_.advertiseService("actionStatus",&Bridge::getActionStatus,this);
+
     ser7_ = nh_.advertiseService("stationkeepingHere",&Bridge::runStationKeeping,this);
+
     // Timer
     timer1_ = nh_.createTimer(ros::Duration(1),&Bridge::messageOut,this);
 
@@ -90,22 +92,10 @@ namespace rsilauv{
 
     if (true)
     {
-      cpt_ ++;
-      rsi_lauv_ntnu::testMsgRsiLauv msg_n;
-      msg_n.txt1 = "test1";
-      msg_n.txt2 = "test2";
-      msg_n.val1 = cpt_;
-      msg_n.val2 = cpt_*-1;
-      pub1_.publish(msg_n);
-      //rostopic echo /testMsgRsiLauv
-    }
-    if (true)
-    {
       g2s_interface::robotStatus msg_r;
       msg_r.robotBatteryLevel = cpt_;
       msg_r.robotAutonomy = 50;
-      pub2_.publish(msg_r);
-      //rostopic echo /robotStatus
+      pubMap_["robotStatus"].publish(msg_r);
     }
     if (true)
     {
@@ -118,11 +108,11 @@ namespace rsilauv{
       msg_ed.waterData.wPH = myWater_.ph;
       msg_ed.waterData.wLevelH2S = myWater_.levelH2S;
       msg_ed.waterData.wLevelDVL = myWater_.levelDVL;
-      pub4_.publish(msg_ed);
+      pubMap_["environmentData"].publish(msg_ed);
     }
     if (false)
     {
-      //TODO Gerer cette info de connection !!!
+      //TODO Manage connection information
       ROS_INFO_STREAM("Info: " << int(tcp_client_->isConnected()));
     }
   }
@@ -130,10 +120,11 @@ namespace rsilauv{
   bool Bridge::runAbortAction(g2s_interface::abort_Action::Request &req,
     g2s_interface::abort_Action::Response &res)
   {
-    if (!isConnectedDetermined()){
+    if (!isConnectedDetermined())
+    {
       res.success = false;
       return false;
-      }
+    }
     if (req.actionId!=0 && req.actionId!=action_id_)
     {
       ROS_WARN("[%s] Incorrect actionId",nodeName_.c_str());
@@ -146,22 +137,21 @@ namespace rsilauv{
     DUNE::IMC::Abort ab;
     ab.setDestination(vehicleId_);
     sendToTcpServer(ab);
-
     //ABORT EVERYTHING - what happens if the camera/sonar is activated, but the rest is aborted?
 
-    ROS_INFO("plan control state: %d ",res.success);
     res.success = true;
+    ROS_INFO("plan control state: %d ",res.success);
     return true;
   }
 
   bool Bridge::runStopAction(g2s_interface::abort_Action::Request &req,
     g2s_interface::abort_Action::Response &res)
   {
-    if (!isConnectedDetermined()){
+    if (!isConnectedDetermined())
+    {
       res.success = false;
       return false;
     }
-
     if (req.actionId!=0 && req.actionId!=action_id_)
     {
       ROS_WARN("[%s] Incorrect actionId",nodeName_.c_str());
@@ -202,22 +192,29 @@ namespace rsilauv{
       if (planState == 2)
       {
         res.actionStatus = "INITIALIZING";
-      } else if (planState == 3)
+      }
+      else if (planState == 3)
       {
         std::ostringstream oss;
         oss << "EXECUTING, progress: " << PCState->plan_progress << " %%";
         res.actionStatus = oss.str();
 
-      } else if (planState == 1)
+      }
+      else if (planState == 1)
       {
         res.actionStatus = "FINISHED";
-      } else {
+      }
+      else
+      {
         res.actionStatus = "NONE";
       }
-    } else if (req.actionId > (action_id_-1))
+    }
+    else if (req.actionId > (action_id_-1))
     {
       res.actionStatus = "NOT STARTED";
-    } else {
+    }
+    else
+    {
       res.actionStatus = "FINISHED";
     }
     ROS_INFO("Plan control state: %d ", planState);
@@ -459,7 +456,7 @@ namespace rsilauv{
           situ.robotAltitude = mySitu_.altitude;
 
           //Publish situation message
-          pub5_.publish(situ);
+          pubMap_["robotSituation"].publish(situ);
           break;
         }
 
@@ -539,9 +536,9 @@ namespace rsilauv{
 
         case IMC_ID_SOUNDSPEED :
         {
-        const DUNE::IMC::SoundSpeed* ppp = static_cast<const DUNE::IMC::SoundSpeed*>(msg);
-        myWater_.soundSpeed = ppp->value;
-        break;
+          const DUNE::IMC::SoundSpeed* ppp = static_cast<const DUNE::IMC::SoundSpeed*>(msg);
+          myWater_.soundSpeed = ppp->value;
+          break;
         }
 
         case IMC_ID_DEPTH:
@@ -567,7 +564,7 @@ namespace rsilauv{
                 g2s_interface::endOfAction msg;
                 msg.actionId = action_id_-1;
                 msg.endCode = 1;
-                pub3_.publish(msg);
+                pubMap_["endOfAction"].publish(msg);
               }
             }
           PCStateCounter++;

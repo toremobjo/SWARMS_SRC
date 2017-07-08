@@ -3,7 +3,7 @@
 #include "g2s_interface/abort_Action.h"
 #include "g2s_interface/runGOTO_WAYPOINT.h"
 #include <std_msgs/Int32.h>
-#include "rsi_lauv_ntnu/testMsgRsiLauv.h"
+// #include "rsi_lauv_ntnu/testMsgRsiLauv.h"
 #include <actionDefs.h>
 
 #include <geometry_msgs/Pose.h>
