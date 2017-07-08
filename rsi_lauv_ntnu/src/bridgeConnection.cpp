@@ -4,7 +4,6 @@
 // Local headers
 #include <bridgeConnection.hpp>
 #include <utilFctn.hpp>
-// #include <actionBridge.hpp>
 
 static std::string nodeName = "bridgeLauvNode";
 
@@ -20,49 +19,22 @@ namespace rsilauv{
   serverPort_(serverPort),
   tcp_client_(NULL),
   tcp_client_thread_(NULL),
-  vehicleName_(vehicleName),
-  vehicleId_(-1),
   action_id_(1), //temporary action ID
-  vehicleService_(false),
   lastState_(0),
   flagInitPlanOutCome_(true),
   flagEntity_(false)
   {
 
-    // Messages
-    pubMap_["robotStatus"] = nh_.advertise<g2s_interface::robotStatus>("robotStatus",1000);
-    pubMap_["endOfAction"] = nh_.advertise<g2s_interface::endOfAction>("endOfAction",1000);
-    pubMap_["environmentData"] = nh_.advertise<g2s_interface::environmentData>("environmentData",1000);
-    pubMap_["robotSituation"] = nh_.advertise<g2s_interface::robotSituation>("robotSituation",1000);
+    vehicle_.init(vehicleName);
 
-    // Services
-    serMap_["powerStatus"] = nh_.advertiseService("powerStatus",&Bridge::runPowerStatus,this);
-    serMap_["runGOTO_WAYPOINT"] = nh_.advertiseService("runGOTO_WAYPOINT",&Bridge::runGotoWaypoint,this);
-    serMap_["abort_Action"] = nh_.advertiseService("abort_Action",&Bridge::runAbortAction,this);
-    serMap_["stop_Action"] = nh_.advertiseService("stop_Action",&Bridge::runStopAction,this);
-    serMap_["actionStatus"] = nh_.advertiseService("actionStatus",&Bridge::getActionStatus,this);
+    messagesDeclaration();
+    servicesDeclaration();
 
     ser7_ = nh_.advertiseService("stationkeepingHere",&Bridge::runStationKeeping,this);
-
-    // Timer
     timer1_ = nh_.createTimer(ros::Duration(1),&Bridge::messageOut,this);
 
-    // EnvironmentData - default values
-    myWater_.temperature = -99999;
-    myWater_.salinity = -99999;
-    myWater_.conductivity = -99999;
-    myWater_.pressure = -99999;
-    myWater_.soundSpeed = -99999;
-    myWater_.turbidity = -99999;
-    myWater_.ph = -99999;
-    myWater_.levelH2S = -99999;
-    myWater_.levelDVL = -99999;
-
-    // RobotSituation
-    mySitu_.x = 0;
-    mySitu_.y = 0;
-    mySitu_.z = 0;
-    mySitu_.sequence = 1;
+    initWaterData();
+    initSituData();
 
     PCStateCounter = 0;
     lastPCState = 1;
@@ -135,7 +107,7 @@ namespace rsilauv{
     ROS_INFO("[%s] runAbortAction",nodeName_.c_str());
 
     DUNE::IMC::Abort ab;
-    ab.setDestination(vehicleId_);
+    ab.setDestination(vehicle_.get_id());
     sendToTcpServer(ab);
     //ABORT EVERYTHING - what happens if the camera/sonar is activated, but the rest is aborted?
 
@@ -470,7 +442,7 @@ namespace rsilauv{
         case IMC_ID_VEHICLESTATE :
         {
           const DUNE::IMC::VehicleState* ppp = static_cast<const DUNE::IMC::VehicleState*>(msg);
-          vehicleService_ = ppp->op_mode==DUNE::IMC::VehicleState::VS_SERVICE;
+          vehicle_.set_isService(ppp->op_mode==DUNE::IMC::VehicleState::VS_SERVICE);
           //ROS_INFO("VehicleState");
           break;
         }
@@ -613,27 +585,27 @@ namespace rsilauv{
 
   bool Bridge::isServiceMode(void)
   {
-    if (!vehicleService_)
+    if (!vehicle_.get_isService())
     {
       ROS_WARN("[%s] Vehicle is not in service mode.",nodeName_.c_str());
     }
-    return vehicleService_;
+    return vehicle_.get_isService();
   }
 
   bool Bridge::isFromVehicle(int IdSource)
   {
-    return (vehicleId_==IdSource);
+    return (vehicle_.get_id()==IdSource);
   }
 
   bool Bridge::isVehicleIdDetermined(void)
   {
-    return (vehicleId_>0);
+    return (vehicle_.get_id()>0);
   }
 
   void Bridge::determineVehicleId(const DUNE::IMC::Announce* msg)
   {
-    if (msg->sys_name==vehicleName_)
-      vehicleId_ = msg->getSource();
+    if (msg->sys_name==vehicle_.get_name())
+      vehicle_.set_id(msg->getSource());
   }
 
   void Bridge::start(void)
@@ -655,6 +627,65 @@ namespace rsilauv{
     delete tcp_client_;
     tcp_client_ = NULL;
   }
+
+  void Bridge::initSituData(void)
+  {
+    mySitu_.x = 0;
+    mySitu_.y = 0;
+    mySitu_.z = 0;
+    mySitu_.lat = 0;
+    mySitu_.lon = 0;
+    mySitu_.height = 0;
+    mySitu_.latlin = 0;
+    mySitu_.lonlin = 0;
+    mySitu_.phi = 0;
+    mySitu_.theta = 0;
+    mySitu_.psi = 0;
+    mySitu_.u = 0;
+    mySitu_.v = 0;
+    mySitu_.w = 0;
+    mySitu_.vx = 0;
+    mySitu_.vy = 0;
+    mySitu_.vz = 0;
+    mySitu_.depth = 0;
+    mySitu_.altitude = 0;
+    mySitu_.sequence = 1;
+    return;
+  }
+
+  void Bridge::initWaterData(void)
+  {
+    myWater_.temperature = -99999;
+    myWater_.salinity = -99999;
+    myWater_.conductivity = -99999;
+    myWater_.pressure = -99999;
+    myWater_.soundSpeed = -99999;
+    myWater_.turbidity = -99999;
+    myWater_.ph = -99999;
+    myWater_.levelH2S = -99999;
+    myWater_.levelDVL = -99999;
+    return;
+  }
+
+  void Bridge::messagesDeclaration(void)
+  {
+    pubMap_["robotStatus"] = nh_.advertise<g2s_interface::robotStatus>("robotStatus",1000);
+    pubMap_["endOfAction"] = nh_.advertise<g2s_interface::endOfAction>("endOfAction",1000);
+    pubMap_["environmentData"] = nh_.advertise<g2s_interface::environmentData>("environmentData",1000);
+    pubMap_["robotSituation"] = nh_.advertise<g2s_interface::robotSituation>("robotSituation",1000);
+    return;
+  }
+
+  void Bridge::servicesDeclaration(void)
+  {
+    serMap_["powerStatus"] = nh_.advertiseService("powerStatus",&Bridge::runPowerStatus,this);
+    serMap_["runGOTO_WAYPOINT"] = nh_.advertiseService("runGOTO_WAYPOINT",&Bridge::runGotoWaypoint,this);
+    serMap_["abort_Action"] = nh_.advertiseService("abort_Action",&Bridge::runAbortAction,this);
+    serMap_["stop_Action"] = nh_.advertiseService("stop_Action",&Bridge::runStopAction,this);
+    serMap_["actionStatus"] = nh_.advertiseService("actionStatus",&Bridge::getActionStatus,this);
+    return;
+  }
+
 }
 
 
@@ -662,7 +693,6 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, nodeName, ros::init_options::AnonymousName);
   ros::NodeHandle nh;
-  //ROS_INFO("[%s] Here I am ...",nodeName.c_str());
 
   std::string serverAddr, serverPort, vehicleName;
   utilfctn::getParam("~server_addr",serverAddr);
@@ -673,22 +703,5 @@ int main(int argc, char** argv)
 
   ros::spin();
 
-  // ros::Rate loopRate(1); //Hz
-  // utilfctn::TicToc chrono1;
-  // chrono1.start();
-  // while (ros::ok())
-  // {
-  //   // chrono1.stop();
-  //   // ROS_INFO("[%s] Chrono %.4f Sec (%.2f Hz)",nodeName.c_str(),
-  //   //   chrono1.getDtSec(),1/chrono1.getDtSec());
-  //   // chrono1.start();
-  //
-  //   if (true)
-  //   {
-  //     bridge.messageOut();
-  //   }
-  //   ros::spinOnce();
-  //   loopRate.sleep();
-  // }
   return 0;
 }

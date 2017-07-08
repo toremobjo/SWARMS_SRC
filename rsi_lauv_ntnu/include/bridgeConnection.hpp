@@ -50,6 +50,26 @@
 
 namespace rsilauv
 {
+  class Vehicle
+  {
+  public:
+    Vehicle(void) {}
+    void init(std::string vehicleName)
+    {
+      name = vehicleName;
+      id = -1;
+      isService = false;
+    }
+    std::string get_name() {return name;}
+    int get_id() {return id;}
+    void set_id(int val) {id = val; return;}
+    void set_isService(bool val) {isService = val; return;}
+    bool get_isService() {return isService;}
+  private:
+    std::string name;
+    int id;
+    bool isService;
+  };
   struct Water
   {
     float temperature;
@@ -64,14 +84,14 @@ namespace rsilauv
   };
   struct Situation
   {
-    float x, y, z; // x: North, east and down offsets (s.t LLH).
-    double lat, lon, height; // Latitudinal, longditudinal and height position estimate.
+    float x, y, z;            // x: North, east and down offsets (s.t LLH).
+    double lat, lon, height;  // Latitudinal, longditudinal and height position estimate.
     double latlin, lonlin;
-    float phi, theta, psi; // Euler angles for roll, pitch and yaw.
-    float u, v, w; // Velocities in the body-fixed coordinate frame.
-    float vx, vy, vz; // Velocities in the earth-fixed coordinate frame.
-    float p, q, r; //Angular velocity in roll, pitch and yaw (body-fixed).
-    float depth; //Depth below surface.
+    float phi, theta, psi;    // Euler angles for roll, pitch and yaw.
+    float u, v, w;            // Velocities in the body-fixed coordinate frame.
+    float vx, vy, vz;         // Velocities in the earth-fixed coordinate frame.
+    float p, q, r;            // Angular velocity in roll, pitch and yaw (body-fixed).
+    float depth;              // Depth below surface.
     float altitude;
     int   sequence;
   };
@@ -112,13 +132,18 @@ namespace rsilauv
     ros_imc_broker::TcpLink* tcp_client_;         // TCP client to DUNE's server
     boost::thread* tcp_client_thread_;            // TCP client thread
 
-    std::string& vehicleName_;
-    int vehicleId_;
-    bool vehicleService_;
-
     std::map<std::string, ros::Publisher> pubMap_;
     std::map<std::string, ros::ServiceServer> serMap_;
 
+    Vehicle vehicle_;
+
+    /*
+    std::string& vehicleName_;
+    int vehicleId_;
+    bool vehicleService_;
+    */
+
+    //TODO: TO BE DELETED
     ros::ServiceServer ser7_;
     ros::Timer timer1_;
 
@@ -153,6 +178,10 @@ namespace rsilauv
 
     float desiredSpeed;
 
+    void initSituData(void);
+
+    void initWaterData(void);
+
     //Abort spesific  action, do nothing after.
     bool runAbortAction(g2s_interface::abort_Action::Request &req,
       g2s_interface::abort_Action::Response &res);
@@ -169,7 +198,7 @@ namespace rsilauv
       g2s_interface::runGOTO_WAYPOINT::Response &res);
 
     bool runStationKeeping(rsi_lauv_ntnu::testStationKeeping::Request &req,
-    rsi_lauv_ntnu::testStationKeeping::Response &res);
+      rsi_lauv_ntnu::testStationKeeping::Response &res);
 
     //TODO: Can we use a template here
     void sendToTcpServer(const DUNE::IMC::SetEntityParameters &msg)
@@ -224,6 +253,12 @@ namespace rsilauv
     //Find the identity of the vehicle
     bool isFromVehicle(int IdSource);
 
+    // Declaration of ROS messages
+    void messagesDeclaration(void);
+
+    // Declaration of ROS services
+    void servicesDeclaration(void);
+
     //Is the vehicle identity/vehicle all together available?
     bool isVehicleIdDetermined(void);
 
@@ -231,6 +266,7 @@ namespace rsilauv
 
     // Copy/Past form OMST
     void start(void);
+
     // Copy/Past form OMST
     void stop(void);
   };
