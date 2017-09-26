@@ -34,6 +34,7 @@ namespace rsilauv{
     pub3_ = nh_.advertise<g2s_interface::endOfAction>("endOfAction",1000);
     pub4_ = nh_.advertise<g2s_interface::environmentData>("environmentData",1000);
     pub5_ = nh_.advertise<g2s_interface::robotSituation>("robotSituation",1000);
+    pub6_ = nh_.advertise<geometry_msgs::Point>("robotPosSimple",1000);
     // Services
     //ser1_ = nh_.advertiseService("testSrvRsiLauv_0",&Bridge::runTestSrvRsiLauv,this);
     ser2_ = nh_.advertiseService("powerStatus",&Bridge::runPowerStatus,this);
@@ -42,6 +43,7 @@ namespace rsilauv{
     ser5_ = nh_.advertiseService("stop_Action",&Bridge::runStopAction,this);
     ser6_ = nh_.advertiseService("actionStatus",&Bridge::getActionStatus,this);
     ser7_ = nh_.advertiseService("stationkeepingHere",&Bridge::runStationKeeping,this);
+    ser8_ = nh_.advertiseService("GotoSimple", &Bridge::runGotoSimple,this);
     // Timer
     timer1_ = nh_.createTimer(ros::Duration(1),&Bridge::messageOut,this);
 
@@ -168,7 +170,7 @@ namespace rsilauv{
       res.success = false;
       return false;
     }
-
+    // TODO: manage wrong action ID
     ROS_INFO("[%s] runStopCurrentAction",nodeName_.c_str());
 
     DUNE::IMC::PlanControl pc;
@@ -224,6 +226,80 @@ namespace rsilauv{
     return true;
   }
 
+  bool Bridge::runGotoSimple(rsi_lauv_ntnu::runGotoSimple::Request &req,
+    rsi_lauv_ntnu::runGotoSimple::Response &res)
+  {
+    if (!isConnectedDetermined())
+      return false;
+
+    if (!isServiceMode())
+      return false;
+
+    ROS_INFO("[%s] runGotoWaypoint Simple",nodeName_.c_str());
+
+    plan_state_id_.clear();
+    plan_id_ = "swarms simple goto";
+    //TODO: fix simple goto
+
+    /*DUNE::IMC::PlanControl pc;
+    //pc = actionUtil::actionUtilMakePCGoto(req,res);
+    std::string plan_id_ = "swarms";
+    float desiredSpeed;*/
+
+    DUNE::IMC::PlanControl pc;
+    pc.plan_id = plan_id_;
+    pc.op = DUNE::IMC::PlanControl::PC_START;
+    pc.type = DUNE::IMC::PlanControl::PC_REQUEST;
+    pc.request_id = 1000;
+
+    DUNE::IMC::Goto manGoto;
+    DUNE::IMC::PlanManeuver pm;
+    DUNE::IMC::PlanSpecification ps;
+
+    //calculate from relative position(NED) in relation to Fixed point.
+    geometry_msgs::Point desiredPoint;
+    desiredPoint = req.pos;
+    //float deltaLat = desiredPoint.y/6386651.041660708; // divided by meters per radian latitude in Trondheim
+    //float deltaLon = desiredPoint.x/2862544.348782668; // divided by meters per radian longditude in Trondheim
+
+    desiredSpeed = 1.6;
+
+    // Goto
+    //manGoto.lat = 1.1072639824284860 + deltaLat; //todo: change to proper zero-point in time
+    //manGoto.lon = 0.1806556449351842 + deltaLon;
+    manGoto.lat = desiredPoint.x; //1.10724680839 + deltaLat; //todo: change to proper zero-point in time 1.10725186984
+    manGoto.lon = desiredPoint.y; // 0.18063016312 + deltaLon;
+    manGoto.z = desiredPoint.z;
+    manGoto.z_units = DUNE::IMC::Z_DEPTH;
+    //manGoto.yaw = 3.14; // todo: implement desired attitude at end of goto
+    manGoto.speed = desiredSpeed;
+    manGoto.speed_units = DUNE::IMC::SUNITS_METERS_PS;
+    manGoto.timeout = 1000;
+    manGoto.yaw = 0.0;
+    // Maneuver
+    pm.maneuver_id = "1";
+    pm.data.set(manGoto);
+    // Specification
+    ps.plan_id = pc.plan_id;
+    ps.start_man_id = pm.maneuver_id;
+    ps.maneuvers.push_back(pm);
+
+    // PLAN CONTROL
+    pc.arg.set(ps);
+    sendToTcpServer(pc);
+
+    Action currentAction;
+    currentAction.requestTime   = ros::Time::now();
+    currentAction.actionNumber  = action_id_;
+    currentAction.actionPlan    = pc;
+    actionArray.push_back(currentAction);
+
+    ROS_INFO("Running actin number: %d",action_id_);
+    action_id_++;
+    res.success = true;
+    return true;
+  }
+
   bool Bridge::runGotoWaypoint(g2s_interface::runGOTO_WAYPOINT::Request &req,
     g2s_interface::runGOTO_WAYPOINT::Response &res)
   {
@@ -250,7 +326,7 @@ namespace rsilauv{
     currentAction.actionPlan    = pc;
     actionArray.push_back(currentAction);
 
-    //ROS_INFO("Running actin number: %d",action_id_);
+    ROS_INFO("Running actin number: %d",action_id_);
     action_id_++;
     res.actionId = currentAction.actionNumber;
 
@@ -460,6 +536,12 @@ namespace rsilauv{
 
           //Publish situation message
           pub5_.publish(situ);
+
+          geometry_msgs::Point simplePos;
+          simplePos.x = mySitu_.lat;
+          simplePos.y = mySitu_.lon;
+          simplePos.z = mySitu_.z;
+          pub6_.publish(simplePos);
           break;
         }
 
@@ -505,6 +587,7 @@ namespace rsilauv{
         {
           if (!flagEntity_)
           {
+            //TODO: SEGFAULT DONE
             //ROS_INFO("MSG_ID: %d --> EntityList",int(msg->getId()));
             const DUNE::IMC::EntityList* ppp = static_cast<const DUNE::IMC::EntityList*>(msg);
             //ROS_INFO("MSG_ID: %d --> EntityList: %s",int(msg->getId()),ppp->list.c_str());
@@ -537,6 +620,13 @@ namespace rsilauv{
           break;
         }
 
+        case IMC_ID_PRESSURE :
+        {
+          const DUNE::IMC::Pressure* ppp = static_cast<const DUNE::IMC::Pressure*>(msg);
+          myWater_.pressure = ppp->value;
+          break;
+        }
+
         case IMC_ID_SOUNDSPEED :
         {
         const DUNE::IMC::SoundSpeed* ppp = static_cast<const DUNE::IMC::SoundSpeed*>(msg);
@@ -552,6 +642,9 @@ namespace rsilauv{
 
         case IMC_ID_PLANCONTROLSTATE :
         {
+          //ROS_INFO("Recieved Plan Control State IMC message");
+          //TODO: SEGFAULT
+
           if (PCStateCounter>2)
           {
             lastLastPCState = lastPCState;
@@ -561,6 +654,7 @@ namespace rsilauv{
            if (PCStateCounter > 2)
             {
               if (PCState->state == 1  && lastLastPCState == 3 /*PCState->state*/)
+              //TODO: SEGFAULT
               {
                 int size = actionArray.size();
                 actionArray[size-1].success = true;
@@ -576,7 +670,7 @@ namespace rsilauv{
 
         case IMC_ID_STATIONKEEPING:
         {
-          ROS_INFO("Recieved stationkeeping IMC message");
+          //ROS_INFO("Recieved stationkeeping IMC message");
         }
 
         case IMC_ID_PLANCONTROL :
@@ -600,7 +694,10 @@ namespace rsilauv{
     if (tcp_client_->isConnected())
     {
       if (isVehicleIdDetermined())
+      {
+        //ROS_INFO("Vehicle connected.");
         return true;
+      }
       else
       {
         ROS_WARN("[%s] Vehicle not determined.",nodeName_.c_str());

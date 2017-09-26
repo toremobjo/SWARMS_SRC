@@ -3,7 +3,7 @@
 #include "g2s_interface/abort_Action.h"
 #include "g2s_interface/runGOTO_WAYPOINT.h"
 #include <std_msgs/Int32.h>
-#include "rsi_lauv_ntnu/testMsgRsiLauv.h"
+//#include "rsi_lauv_ntnu/testMsgRsiLauv.h"
 #include <actionDefs.h>
 
 #include <geometry_msgs/Pose.h>
@@ -120,9 +120,9 @@ void fRgi::gotoWay1(){
 	desiredPos.z = 0;
 
 	go.request.waypointPosition = desiredPos;
-	go.request.heading 					= 3.14/2;
+	go.request.heading 					= 3.14/2.0;
 	endOfActionBool 						= false;
-	planCounter 								= 1;
+	//planCounter 								= 1;
 
 	if (goto1Client.call(go))
 	{
@@ -138,8 +138,8 @@ void fRgi::gotoWay2(){
 	geometry_msgs::Point desiredPos;
 	desiredPos.x = 50;
 	desiredPos.y = 0;
-	desiredPos.z = 4;
-	go.request.heading = 0;
+	desiredPos.z = 0;
+	go.request.heading = 0.0;
 
 	go.request.waypointPosition = desiredPos;
 	endOfActionBool = false;
@@ -159,8 +159,8 @@ void fRgi::gotoWay3(){
 	geometry_msgs::Point desiredPos;
 	desiredPos.x = 50;
 	desiredPos.y = 50;
-	desiredPos.z = 3;
-  go.request.heading = 3*3.14/2;
+	desiredPos.z = 0;
+  go.request.heading = 3.0*3.14/2.0;
 
 	go.request.waypointPosition = desiredPos;
 	endOfActionBool = false;
@@ -181,7 +181,7 @@ void fRgi::gotoWay4(){
 	geometry_msgs::Point desiredPos;
 	desiredPos.x = 0;
 	desiredPos.y = 50;
-	desiredPos.z = 5;
+	desiredPos.z = 0;
 
 	go.request.waypointPosition = desiredPos;
 	endOfActionBool = false;

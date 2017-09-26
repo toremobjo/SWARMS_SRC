@@ -13,6 +13,7 @@
 #include "rsi_lauv_ntnu/testMsgRsiLauv.h"
 #include "rsi_lauv_ntnu/testSrvRsiLauv.h"
 #include "rsi_lauv_ntnu/testStationKeeping.h"
+#include "rsi_lauv_ntnu/runGotoSimple.h"
 
 // RSI headers
 // #include <rgi_rsi/.hpp>
@@ -119,6 +120,7 @@ namespace rsilauv
     ros::Publisher pub3_;
     ros::Publisher pub4_;
     ros::Publisher pub5_;
+    ros::Publisher pub6_;
     ros::ServiceServer ser1_;
     ros::ServiceServer ser2_;
     ros::ServiceServer ser3_;
@@ -126,6 +128,7 @@ namespace rsilauv
     ros::ServiceServer ser5_;
     ros::ServiceServer ser6_;
     ros::ServiceServer ser7_;
+    ros::ServiceServer ser8_;
     ros::Timer timer1_;
 
     //! Desired plan id.
@@ -159,6 +162,8 @@ namespace rsilauv
 
     float desiredSpeed;
 
+    // Test simple goto
+  //  bool runGotoSimple();
     //Abort spesific  action, do nothing after.
     bool runAbortAction(g2s_interface::abort_Action::Request &req,
       g2s_interface::abort_Action::Response &res);
@@ -176,6 +181,9 @@ namespace rsilauv
 
     bool runStationKeeping(rsi_lauv_ntnu::testStationKeeping::Request &req,
     rsi_lauv_ntnu::testStationKeeping::Response &res);
+
+    bool runGotoSimple(rsi_lauv_ntnu::runGotoSimple::Request &req,
+        rsi_lauv_ntnu::runGotoSimple::Response &res);
 
     //TODO: Peut on passer par un Template
     void sendToTcpServer(const DUNE::IMC::SetEntityParameters &msg)

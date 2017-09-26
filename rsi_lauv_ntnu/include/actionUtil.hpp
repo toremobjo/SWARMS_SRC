@@ -71,6 +71,7 @@ namespace actionUtil
       float deltaLat = desiredPoint.y/6386651.041660708; // divided by meters per radian latitude in Trondheim
       float deltaLon = desiredPoint.x/2862544.348782668; // divided by meters per radian longditude in Trondheim
 
+
       //ROS_INFO("Desired speed: %f", req.speed);
       if (req.speed > 0.01)
       {
@@ -80,8 +81,10 @@ namespace actionUtil
       }
 
       // Goto
-      manGoto.lat = 1.1072639824284860 + deltaLat; //todo: change to proper zero-point in time
-      manGoto.lon = 0.1806556449351842 + deltaLon;
+      //manGoto.lat = 1.1072639824284860 + deltaLat; //todo: change to proper zero-point in time
+      //manGoto.lon = 0.1806556449351842 + deltaLon;
+      manGoto.lat = 1.10725186984 + deltaLat; //1.10724680839 + deltaLat; //todo: change to proper zero-point in time 1.10725186984
+      manGoto.lon = 0.18064286912 + deltaLon; // 0.18063016312 + deltaLon;
       manGoto.z = desiredPoint.z;
       manGoto.z_units = DUNE::IMC::Z_DEPTH;
       //manGoto.yaw = 3.14; // todo: implement desired attitude at end of goto
