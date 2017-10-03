@@ -136,7 +136,7 @@ namespace rsilauv{
       res.success = false;
       return false;
       }
-    if (req.actionId!=0 && req.actionId!=action_id_)
+    if (req.actionId!=0 && req.actionId!=(action_id_-1))
     {
       ROS_WARN("[%s] Incorrect actionId",nodeName_.c_str());
       res.success = false;
@@ -295,8 +295,9 @@ namespace rsilauv{
     actionArray.push_back(currentAction);
 
     ROS_INFO("Running actin number: %d",action_id_);
+
+    res.actionId = action_id_;
     action_id_++;
-    res.success = true;
     return true;
   }
 
@@ -342,42 +343,6 @@ namespace rsilauv{
     if (!isServiceMode())
       return false;
 
-    /*plan_state_id_.clear();
-    plan_id_ = "swarms";
-
-    DUNE::IMC::PlanSpecification ps;
-    DUNE::IMC::PlanControl pc;
-    DUNE::IMC::StationKeeping sk;
-    DUNE::IMC::PlanManeuver pm;
-    sk.lat      = mySitu_.lat;
-    sk.lon      = mySitu_.lon;
-    sk.z        = mySitu_.z;
-    sk.z_units  = DUNE::IMC::Z_DEPTH;
-    sk.radius   = 20;
-    sk.duration  = 0;
-
-    pm.maneuver_id = "1";
-    pm.data.set(sk);
-    // Specification
-    ps.plan_id = plan_id_;
-    ps.start_man_id = pm.maneuver_id;
-    ps.maneuvers.push_back(pm);
-
-    // PLAN CONTROL
-    pc.arg.set(ps);
-
-    sendToTcpServer(pc);
-
-    Action currentAction;
-    currentAction.requestTime   = ros::Time::now();
-    currentAction.actionNumber  = action_id_;
-    //currentAction.actionPlan    = sk;
-    actionArray.push_back(currentAction);
-
-    //ROS_INFO("Running actin number: %d",action_id_);
-    action_id_++;
-    res.actionId = currentAction.actionNumber;*/
-
     std::string plan_id_ = "swarms";
     float desiredSpeed;
 
@@ -393,17 +358,7 @@ namespace rsilauv{
 
     //calculate from relative position(NED) in relation to Fixed point.
     geometry_msgs::Point desiredPoint;
-    //desiredPoint = mySitu_.;
-    //float deltaLat = desiredPoint.y/6386651.041660708; // divided by meters per radian latitude in Trondheim
-    //float deltaLon = desiredPoint.x/2862544.348782668; // divided by meters per radian longditude in Trondheim
-
-    //ROS_INFO("Desired speed: %f", req.speed);
-    //if (req.speed > 0.01)
-    //{
-    //  desiredSpeed = req.speed;
-  //  }else{
-      desiredSpeed = 1.6;
-  //  }
+    desiredSpeed = 1.6;
 
     // Goto
     sk.lat = mySitu_.lat;//1.1072639824284860;// + deltaLat; //todo: change to proper zero-point in time
@@ -414,8 +369,7 @@ namespace rsilauv{
     //manGoto.yaw = 3.14; // todo: implement desired attitude at end of goto
     sk.speed = desiredSpeed;
     sk.speed_units = DUNE::IMC::SUNITS_METERS_PS;
-    //manGoto.timeout = 1000;
-    //manGoto.yaw = req.heading;
+
     // Maneuver
     pm.maneuver_id = "123";
     pm.data.set(sk);
@@ -772,23 +726,5 @@ int main(int argc, char** argv)
   rsilauv::Bridge bridge(nh,nodeName,serverAddr,serverPort,vehicleName);
 
   ros::spin();
-
-  // ros::Rate loopRate(1); //Hz
-  // utilfctn::TicToc chrono1;
-  // chrono1.start();
-  // while (ros::ok())
-  // {
-  //   // chrono1.stop();
-  //   // ROS_INFO("[%s] Chrono %.4f Sec (%.2f Hz)",nodeName.c_str(),
-  //   //   chrono1.getDtSec(),1/chrono1.getDtSec());
-  //   // chrono1.start();
-  //
-  //   if (true)
-  //   {
-  //     bridge.messageOut();
-  //   }
-  //   ros::spinOnce();
-  //   loopRate.sleep();
-  // }
   return 0;
 }
