@@ -207,8 +207,9 @@ namespace rsilauv{
       } else if (planState == 3)
       {
         std::ostringstream oss;
-        oss << "EXECUTING, progress: " << PCState->plan_progress << " %%";
+        oss << "EXECUTING";
         res.actionStatus = oss.str();
+        res.progress = PCState->plan_progress;
 
       } else if (planState == 1)
       {
