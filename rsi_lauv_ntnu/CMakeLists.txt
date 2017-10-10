@@ -56,6 +56,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 add_message_files(
   FILES
   testMsgRsiLauv.msg
+  robotPosSimple.msg
 )
 
 ## Generate services in the 'srv' folder

@@ -14,6 +14,7 @@
 #include "rsi_lauv_ntnu/testSrvRsiLauv.h"
 #include "rsi_lauv_ntnu/testStationKeeping.h"
 #include "rsi_lauv_ntnu/runGotoSimple.h"
+#include "rsi_lauv_ntnu/robotPosSimple.h"
 
 // RSI headers
 // #include <rgi_rsi/.hpp>

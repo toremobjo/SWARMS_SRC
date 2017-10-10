@@ -34,7 +34,7 @@ namespace rsilauv{
     pub3_ = nh_.advertise<g2s_interface::endOfAction>("endOfAction",1000);
     pub4_ = nh_.advertise<g2s_interface::environmentData>("environmentData",1000);
     pub5_ = nh_.advertise<g2s_interface::robotSituation>("robotSituation",1000);
-    pub6_ = nh_.advertise<geometry_msgs::Point>("robotPosSimple",1000);
+    pub6_ = nh_.advertise<rsi_lauv_ntnu::robotPosSimple>("robotPosSimple",1000);
     // Services
     //ser1_ = nh_.advertiseService("testSrvRsiLauv_0",&Bridge::runTestSrvRsiLauv,this);
     ser2_ = nh_.advertiseService("powerStatus",&Bridge::runPowerStatus,this);
@@ -496,7 +496,10 @@ namespace rsilauv{
           simplePos.x = mySitu_.lat;
           simplePos.y = mySitu_.lon;
           simplePos.z = mySitu_.z;
-          pub6_.publish(simplePos);
+          rsi_lauv_ntnu::robotPosSimple posmsg;
+          posmsg.pos = simplePos;
+          posmsg.header.stamp = ros::Time::now();
+          pub6_.publish(posmsg);
           break;
         }
 
